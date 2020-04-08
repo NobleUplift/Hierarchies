@@ -1,0 +1,45 @@
+list
+- List all hierarchies, confirm format
+
+show
+- Show a hierarchy with a simple tree
+- Show a hierarchy with a complex tree
+
+create
+- Create with name and role provided
+- Try to create without role provided
+- Try to create with a role from another hierarchy
+
+delete
+- Delete a hierarchy that exists (verify that roles array is purged)
+- Try to delete a hierarchy that doesn't exist
+
+add
+- Add a tier to the bottom of the hierarchy
+- Add a tier to the middle of the hierarchy
+- Try to add a tier already in another hierarchy
+
+remove
+- Remove a tier from the bottom of the hierarchy
+- Remove a tier from the middle of the hierarchy (ensure parent tiers are reassigned)
+- Attempt to remove the tier at the top of the hierarchy (should fail)
+
+modify
+- Implement command
+
+promote
+- Promote a user with no role in the hierarchy, confirm role
+- Promote a user with a role in the hierarchy, confirm role addition and removal
+- Attempt to promote a user with no role in the hierarchy
+- Attempt to promote a user when you do not have access to promote (depth is 1 or greater)
+- Promote a user to your role (depth is 0)
+
+demote
+- Demote a user with a role in the hierarchy, confirm role addition and removal
+- Attempt to demote a user at the bottom of the hierarchy (should fail, cannot demote to nothing)
+
+assign
+- Implement command
+
+unassign
+- Implement command
