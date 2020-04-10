@@ -11,6 +11,7 @@ description = '''An example bot to showcase the discord.ext.commands extension
 module.
 There are a number of utility commands being showcased here.'''
 bot = commands.Bot(command_prefix='^', description=description)
+#hierarchies_cache = {}
 
 @bot.event
 async def on_ready():
@@ -24,6 +25,7 @@ def lock_server_file(server_id):
         raise Exception('Server file is currently locked.')
 
     Path(str(server_id) + '.lck').touch()
+    #os.mknod(str(server_id) + '.lck')
 
 def get_server_json(server_id):
     if path.isfile(str(server_id) + '.json'):
@@ -41,6 +43,15 @@ def get_server_json(server_id):
             'roles': {}
         }
         return server_json
+
+    #if server_id in hierarchies_cache:
+    #    server_hierarchies = hierarchies_cache[server_id]
+    #    if name in server_hierarchies:
+    #        return server_hierarchies[name]
+    #    else:
+    #        return None
+    #else:
+    #    return None
 
 def save_server_file(server_id, server_json):
     if 'hierarchies' not in server_json:
@@ -135,6 +146,9 @@ async def show(ctx: discord.ext.commands.Context, HierarchyName: str):
             retval += nextline
     return await ctx.send(retval)
 
+#def set_server_hierarchies(server_id, server_hierarchies):
+#    hierarchies_cache[server_id] = server_hierarchies
+
 async def logger(ctx, message: str):
     print(str)
     server_id = ctx.message.guild.id
@@ -151,8 +165,8 @@ async def logger(ctx, message: str):
 @bot.command()
 @has_manage_roles()
 async def setlogger(ctx: discord.ext.commands.Context, channel: discord.TextChannel):
-    # Can only log setlogger to console, not Discord
-    print(f'{ctx.author.name} <@{ctx.author.id}> ran `setlogger` <#{channel.id}>.')
+    # Infinite loop
+    #await logger(ctx, f'{ctx.author.name} <@{ctx.author.id}> ran `setlogger` <#{channel.id}>.')
     server_id = ctx.message.guild.id
     lock_server_file(server_id)
     server_json = get_server_json(server_id)
@@ -187,6 +201,12 @@ async def create(ctx: discord.ext.commands.Context, HierarchyName: str, RootTier
     server_json = get_server_json(server_id)
     server_json_hierarchies = server_json['hierarchies']
 
+    #server_id = ctx.message.guild.id
+    #if server_id in hierarchies_cache:
+    #    server_hierarchies = hierarchies_cache[server_id]
+    #else:
+    #    server_hierarchies = {}
+
     if HierarchyName in server_json_hierarchies:
         unlock_server_file(server_id)
         return await ctx.send('Hierarchy "' + HierarchyName + '" already exists.')
@@ -208,6 +228,7 @@ async def create(ctx: discord.ext.commands.Context, HierarchyName: str, RootTier
     save_server_file(server_id, server_json)
     unlock_server_file(server_id)
 
+    #hierarchies_cache[server_id] = server_hierarchies
     return await ctx.send('Created hierarchy ' + HierarchyName + '.')
 
 @bot.command()
@@ -233,6 +254,17 @@ async def delete(ctx: discord.ext.commands.Context, HierarchyName: str):
         unlock_server_file(server_id)
         return await ctx.send('Hierarchy ' + HierarchyName + ' does not exist.')
 
+
+    #if server_id in hierarchies_cache:
+    #    server_hierarchies = hierarchies_cache[server_id]
+    #
+    #    if name in server_hierarchies:
+    #        del hierarchies_cache[server_id]
+    #        await ctx.send('Deleted hierarchy ' + name + ' on server ID ' + str(server_id))
+    #    else:
+    #        await ctx.send('Hierarchy ' + name + ' on server ID ' + str(server_id))
+    #else:
+    #    await ctx.send('Server has no hierarchies.')
 #
 # Possible architectures:
 # 1. DoublyLinkedList of hierarchies, each tier contains the tier below it etc.
@@ -329,6 +361,88 @@ async def add(
         unlock_server_file(server_id)
         return await ctx.send('hierarchy_name ' + str(hierarchy_name) + ' does not exist.')
 
+
+'''
+@bot.command()
+@has_manage_roles()
+async def add(
+        ctx: discord.ext.commands.Context,
+        hierarchy_name: str,
+        Tier: discord.Role,
+        Parent: discord.Role = None,
+        PromotionMinimumDepth: int = -1,
+        PromotionMaximumDepth: int = -1,
+        DemotionMinimumDepth: int = -1,
+        DemotionMaximumDepth: int = -1
+    ):
+    tier_template = {
+        'role_id': 0,
+        'parent_role_id': 0,
+        'depth': 0,
+        'promotion_min_depth': -1,
+        'promotion_max_depth': -1,
+        'demotion_min_depth': -1,
+        'demotion_max_depth': -1
+    }
+
+    server_id = ctx.message.guild.id
+    lock_server_file(server_id)
+    server_json = get_server_json(server_id)
+
+    if str(Tier.id) in server_json['roles']:
+        return await ctx.send('Role already exists in hierarchy ' + server_json['roles'][Tier.id] + '.')
+
+    #if server_id in hierarchies_cache:
+    #    server_hierarchies = hierarchies_cache[server_id]
+    if hierarchy_name in server_json['hierarchies']:
+        role_added = False
+        old_hierarchy = server_json['hierarchies'][hierarchy_name]['tiers']
+        new_hierarchy = []
+        if len(old_hierarchy) == 0 and Parent is None:
+            server_json['roles'][str(Tier.id)] = hierarchy_name
+            tier_template['role_id'] = Tier.id
+            tier_template['parent_role_id'] = 0
+            tier_template['depth'] = 0
+            tier_template['promotion_min_depth'] = PromotionMinimumDepth
+            tier_template['promotion_max_depth'] = PromotionMaximumDepth
+            tier_template['demotion_min_depth'] = DemotionMinimumDepth
+            tier_template['demotion_max_depth'] = DemotionMaximumDepth
+            new_hierarchy.append(tier_template)
+            role_added = True
+        else:
+            depth = 0
+            for tier in old_hierarchy:
+                new_hierarchy.append(tier)
+                depth += 1
+                if 'role_id' in tier and tier['role_id'] == Parent.id:
+                    server_json['roles'][str(Tier.id)] = hierarchy_name
+
+                    tier_template['role_id'] = Tier.id
+                    tier_template['parent_role_id'] = Parent.id
+                    tier_template['depth'] = depth
+                    tier_template['promotion_min_depth'] = PromotionMinimumDepth
+                    tier_template['promotion_max_depth'] = PromotionMaximumDepth
+                    tier_template['demotion_min_depth'] = DemotionMinimumDepth
+                    tier_template['demotion_max_depth'] = DemotionMaximumDepth
+                    new_hierarchy.append(tier_template)
+                    role_added = True
+                    #server_json['tiers'].append(tier_template)
+        server_json['hierarchies'][hierarchy_name]['tiers'] = new_hierarchy
+
+        if role_added:
+            save_server_file(server_id, server_json)
+            await ctx.send('Tier successfully added for role <@&' + str(Tier.id) + '>.')
+        else:
+            await ctx.send('Parent role <@&' + str(Parent.id) + '> does not exist in the hierarchy.')
+    else:
+        await ctx.send('hierarchy_name ' + hierarchy_name + ' does not exist.')
+
+    unlock_server_file(server_id)
+
+    #else:
+    #    await ctx.send('Server has no hierarchies.')
+'''
+
 @bot.command()
 @has_manage_roles()
 async def remove(ctx: discord.ext.commands.Context, Tier: discord.Role):
@@ -342,6 +456,9 @@ async def remove(ctx: discord.ext.commands.Context, Tier: discord.Role):
         unlock_server_file(server_id)
         return await ctx.send('Role <@&' + str(Tier.id) + '> does not belong to a hierarchy.')
     hierarchy_name = server_json['roles'][str(Tier.id)]
+
+    #if str(Tier.id) in server_json['roles'] and server_json['roles'][Tier.id] != hierarchy_name:
+    #    return await ctx.send('Role <@&' + str(Tier.id) + '> exists in hierarchy ' + hierarchy_name + '.')
 
     if hierarchy_name in server_json['hierarchies']:
         old_hierarchy = server_json['hierarchies'][hierarchy_name]['tiers']
@@ -433,6 +550,9 @@ async def promote(ctx: discord.ext.commands.Context, Member: discord.Member, Tie
 
     if tier_to_promote_from is None and int(tier_to_promote_to["depth"]) != int(server_json["hierarchies"][hierarchy_name]["maximum_depth"]):
         return await ctx.send(f'Cannot promote to <@&{tier_to_promote_to["role_id"]}> because <@{Member.id}> does not have its child role.')
+        #return await ctx.send(
+        #   f'Cannot promote to <@&{tier_to_promote_to["role_id"]}> with depth {tier_to_promote_to["depth"]} ' +
+        #   f'that does not equal the maximum depth of {server_json["hierarchies"][hierarchy_name]["maximum_depth"]}.')
 
     # Iterate over author's tiers looking for role that can promote
     for tier_object in author_tiers:
@@ -499,6 +619,9 @@ async def demote(ctx: discord.ext.commands.Context, Member: discord.Member, Tier
 
     if tier_to_demote_from is None:
         return await ctx.send('You cannot demote a user at the lowest level of the hierarchy. Use unassign for this instead.')
+        # return await ctx.send(
+        #   f'Cannot demote to <@&{tier_to_demote_to["role_id"]}> with depth {tier_to_demote_to["depth"]} ' +
+        #   f'that does not equal the maximum depth of {server_json["hierarchies"][hierarchy_name]["maximum_depth"]}.')
 
     # Iterate over author's tiers looking for role that can demote
     for tier_object in author_tiers:
