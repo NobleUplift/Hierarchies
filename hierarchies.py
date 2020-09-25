@@ -6,6 +6,7 @@ from os import path
 from pathlib import Path
 import json
 from discord_token import token
+from typing import Union
 
 def lock_server_file(server_id):
     if path.isfile(str(server_id) + '.lck'):
@@ -155,7 +156,13 @@ class HierarchyManagement(commands.Cog):
                 spaces += ':arrow_right:' # '  ' •
             if len(spaces) != 0:
                 spaces += ' '
-            nextline = spaces + '<@&' + str(tier['role_id']) + '> '
+            role = discord.utils.get(ctx.guild.roles, id=tier['role_id'])
+            role_id = None
+            if role is not None:
+                role_id = str(role.id)
+            else:
+                role_id = '!' + str(tier['role_id'])
+            nextline = spaces + '<@&' + role_id + '> '
             if tier['promotion_min_depth'] != -1 and tier['promotion_max_depth'] != -1:
                 nextline += 'Can Promote: ' + \
                     str(tier['promotion_min_depth']) + ' :arrow_down_small: ' + \
@@ -415,18 +422,27 @@ class HierarchyManagement(commands.Cog):
 
     @commands.command(pass_context=True)
     @has_manage_roles()
-    async def remove(self, ctx: discord.ext.commands.Context, Tier: discord.Role):
+    async def remove(self, ctx: discord.ext.commands.Context, Tier: Union[discord.Role, int]):
         """Removes a role from a hierarchy, linking all former child roles to its parent role. The root role cannot be deleted."""
 
         server_id = ctx.message.guild.id
         lock_server_file(server_id)
         server_json = get_server_json(server_id)
+        role_id = None
+        role_mention = None
 
-        if str(Tier.id) not in server_json['roles']:
+        if isinstance(Tier, discord.Role):
+            role_id = Tier.id
+            role_mention = Tier.mention
+        else:
+            role_id = Tier
+            role_mention = f'<@&!{role_id}>'
+
+        if str(role_id) not in server_json['roles']:
             unlock_server_file(server_id)
-            await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) attempted to remove {Tier.mention} when it does not belong to a hierarchy.')
-            return await ctx.send(f'Role {Tier.mention} does not belong to a hierarchy.')
-        hierarchy_name = server_json['roles'][str(Tier.id)]
+            await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) attempted to remove {role_mention} when it does not belong to a hierarchy.')
+            return await ctx.send(f'Role {role_mention} does not belong to a hierarchy.')
+        hierarchy_name = server_json['roles'][str(role_id)]
 
         if hierarchy_name in server_json['hierarchies']:
             old_hierarchy = server_json['hierarchies'][hierarchy_name]['tiers']
@@ -438,23 +454,23 @@ class HierarchyManagement(commands.Cog):
             #
             tier_to_remove = None
             for tier in old_hierarchy:
-                if 'role_id' in tier and tier['role_id'] == Tier.id:
+                if 'role_id' in tier and tier['role_id'] == role_id:
                     tier_to_remove = tier
                     if 'parent_role_id' in tier_to_remove and tier_to_remove['parent_role_id'] == 0:
                         unlock_server_file(server_id)
-                        await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) attempted to remove the root role {Tier.mention} from hierarchy `{hierarchy_name}`.')
+                        await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) attempted to remove the root role {role_mention} from hierarchy `{hierarchy_name}`.')
                         return await ctx.send(f'Cannot delete root tier for hierarchy {hierarchy_name}. Delete and recreate the hierarchy.')
 
             if tier_to_remove is None:
                 unlock_server_file(server_id)
-                await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) attempted to remove {Tier.mention} from hierarchy `{hierarchy_name}` where it does not exist.')
-                return await ctx.send(f'Role {Tier.mention} does not exist in hierarchy `{hierarchy_name}`.')
+                await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) attempted to remove {role_mention} from hierarchy `{hierarchy_name}` where it does not exist.')
+                return await ctx.send(f'Role {role_mention} does not exist in hierarchy `{hierarchy_name}`.')
 
             for tier in old_hierarchy:
-                if 'role_id' in tier and tier['role_id'] == Tier.id:
-                    del server_json['roles'][str(Tier.id)]
+                if 'role_id' in tier and tier['role_id'] == role_id:
+                    del server_json['roles'][str(role_id)]
                     role_removed = True
-                elif 'parent_role_id' in tier and tier['parent_role_id'] == Tier.id:
+                elif 'parent_role_id' in tier and tier['parent_role_id'] == role_id:
                     tier['parent_role_id'] = tier_to_remove['parent_role_id']
                     new_hierarchy.append(tier)
                 else:
@@ -465,16 +481,16 @@ class HierarchyManagement(commands.Cog):
                 server_json['hierarchies'][hierarchy_name]['tiers'] = new_hierarchy
                 save_server_file(server_id, server_json)
                 unlock_server_file(server_id)
-                await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) removed {Tier.mention} from hierarchy `{hierarchy_name}`.')
-                return await ctx.send(f'Successfully removed {Tier.mention} from hierarchy `{hierarchy_name}`.')
+                await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) removed {role_mention} from hierarchy `{hierarchy_name}`.')
+                return await ctx.send(f'Successfully removed {role_mention} from hierarchy `{hierarchy_name}`.')
             else:
                 unlock_server_file(server_id)
-                await logger(ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to remove {Tier.mention} but it does not exist in hierarchy `{hierarchy_name}`.')
-                return await ctx.send(f'**SERVER CORRUPTION!** Role {Tier.mention} exists in the server role lookup, but does not exist in hierarchy `{hierarchy_name}`! Please contact the developer.')
+                await logger(ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to remove {role_mention} but it does not exist in hierarchy `{hierarchy_name}`.')
+                return await ctx.send(f'**SERVER CORRUPTION!** Role {role_mention} exists in the server role lookup, but does not exist in hierarchy `{hierarchy_name}`! Please contact the developer.')
         else:
             unlock_server_file(server_id)
-            await logger(ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to remove {Tier.mention} but role hierarchy `{hierarchy_name}` no longer exists.')
-            return await ctx.send(f'**SERVER CORRUPTION!** Role {Tier.mention} exists in the server role lookup, but hierarchy `{hierarchy_name}` no longer exists! Please contact the developer.')
+            await logger(ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to remove {role_mention} but role hierarchy `{hierarchy_name}` no longer exists.')
+            return await ctx.send(f'**SERVER CORRUPTION!** Role {role_mention} exists in the server role lookup, but hierarchy `{hierarchy_name}` no longer exists! Please contact the developer.')
 
 
 class PlayerManagement(commands.Cog):
@@ -505,7 +521,13 @@ class PlayerManagement(commands.Cog):
         # that will not be saved to file
         for tier_object in hierarchy:
             role = discord.utils.get(ctx.guild.roles, id=tier_object['role_id'])
+            if role is None:
+                await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not promote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted role {tier_object["role_id"]} still exists in the hierarchy.')
+                return await ctx.send(f'Role {tier_object["role_id"]} was deleted but still exists in the hierarchy.')
             parent_role = discord.utils.get(ctx.guild.roles, id=tier_object['parent_role_id'])
+            if int(tier_object['parent_role_id']) is not 0 and parent_role is None:
+                await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not promote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted parent role {tier_object["parent_role_id"]} still exists in the hierarchy.')
+                return await ctx.send(f'Parent role {tier_object["parent_role_id"]} was deleted but still exists in the hierarchy.')
             tier_object['role'] = role
             tier_object['parent_role'] = parent_role
 
@@ -538,7 +560,9 @@ class PlayerManagement(commands.Cog):
                     await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not promote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because this member has 2 or more child roles in hierarchy {hierarchy_name}.')
                     return await ctx.send(f'This member has 2 or more child roles in hierarchy {hierarchy_name}. You cannot promote a user who has two tiers at the same level.')
 
-        if tier_to_promote_from is None and int(tier_to_promote_to["depth"]) != int(server_json["hierarchies"][hierarchy_name]["maximum_depth"]):
+        # Enforce tier_to_promote_from as a requirement when promoting. Only allow ^assign for lowest role
+        # TODO: Remove maximum_depth, no longer useful
+        if tier_to_promote_from is None: # and int(tier_to_promote_to["depth"]) != int(server_json["hierarchies"][hierarchy_name]["maximum_depth"])
             await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not promote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because {Member.mention} does not have its child role.')
             return await ctx.send(f'Cannot promote to <@&{tier_to_promote_to["role_id"]}> because {Member.mention} does not have its child role.')
 
@@ -578,7 +602,13 @@ class PlayerManagement(commands.Cog):
         # that will not be saved to file
         for tier_object in hierarchy:
             role = discord.utils.get(ctx.guild.roles, id=tier_object['role_id'])
+            if role is None:
+                await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not promote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted role {tier_object["role_id"]} still exists in the hierarchy.')
+                return await ctx.send(f'Role {tier_object["role_id"]} was deleted but still exists in the hierarchy.')
             parent_role = discord.utils.get(ctx.guild.roles, id=tier_object['parent_role_id'])
+            if int(tier_object['parent_role_id']) is not 0 and parent_role is None:
+                await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not promote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted parent role {tier_object["parent_role_id"]} still exists in the hierarchy.')
+                return await ctx.send(f'Parent role {tier_object["parent_role_id"]} was deleted but still exists in the hierarchy.')
             tier_object['role'] = role
             tier_object['parent_role'] = parent_role
 
@@ -605,7 +635,7 @@ class PlayerManagement(commands.Cog):
             calculated_depth = tier_to_promote_to['depth'] - tier_object['depth']
             if tier_object['promotion_min_depth'] <= calculated_depth <= tier_object['promotion_max_depth']:
                 await Member.add_roles(tier_to_promote_to['role'])
-                await logger(ctx, f'{ctx.author.name} {ctx.author.mention} assigned {Member.name} {Member.mention} from role {Tier.name} {Tier.mention}.')
+                await logger(ctx, f'{ctx.author.name} {ctx.author.mention} assigned {Member.name} {Member.mention} to role {Tier.name} {Tier.mention}.')
                 return await ctx.send(f"Assigned {Tier.mention} to {Member.mention}.")
             else:
                 # Might send multiple times for multiple roles
@@ -634,7 +664,13 @@ class PlayerManagement(commands.Cog):
         # that will not be saved to file
         for tier_object in hierarchy:
             role = discord.utils.get(ctx.guild.roles, id=tier_object['role_id'])
+            if role is None:
+                await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not promote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted role {tier_object["role_id"]} still exists in the hierarchy.')
+                return await ctx.send(f'Role {tier_object["role_id"]} was deleted but still exists in the hierarchy.')
             parent_role = discord.utils.get(ctx.guild.roles, id=tier_object['parent_role_id'])
+            if int(tier_object['parent_role_id']) is not 0 and parent_role is None:
+                await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not promote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted parent role {tier_object["parent_role_id"]} still exists in the hierarchy.')
+                return await ctx.send(f'Parent role {tier_object["parent_role_id"]} was deleted but still exists in the hierarchy.')
             tier_object['role'] = role
             tier_object['parent_role'] = parent_role
 
@@ -708,7 +744,13 @@ class PlayerManagement(commands.Cog):
         # that will not be saved to file
         for tier_object in hierarchy:
             role = discord.utils.get(ctx.guild.roles, id=tier_object['role_id'])
+            if role is None:
+                await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not promote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted role {tier_object["role_id"]} still exists in the hierarchy.')
+                return await ctx.send(f'Role {tier_object["role_id"]} was deleted but still exists in the hierarchy.')
             parent_role = discord.utils.get(ctx.guild.roles, id=tier_object['parent_role_id'])
+            if int(tier_object['parent_role_id']) is not 0 and parent_role is None:
+                await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not promote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted parent role {tier_object["parent_role_id"]} still exists in the hierarchy.')
+                return await ctx.send(f'Parent role {tier_object["parent_role_id"]} was deleted but still exists in the hierarchy.')
             tier_object['role'] = role
             tier_object['parent_role'] = parent_role
 
@@ -752,16 +794,66 @@ async def on_ready():
     print(bot.user.id)
     print('------')
 
+# SOURCE/COPYRIGHT: https://gist.github.com/EvieePy/7822af90858ef65012ea500bcecf1612
 @bot.event
 async def on_command_error(ctx: discord.ext.commands.Context, error: Exception):
-    if isinstance(error, commands.CommandNotFound): # , commands.UserInputError
-        return
-    print('ERROR HAS OCCURRED:')
+    """The event triggered when an error is raised while invoking a command.
+            Parameters
+            ------------
+            ctx: commands.Context
+                The context used for command invocation.
+            error: commands.CommandError
+                The Exception raised.
+            """
+    print("ERROR TRIGGERED! CAUGHT BY ON_COMMAND_ERROR")
+    print(ctx)
     print(error)
-    print(traceback.print_exc(type(error), error))
-    server_id = ctx.message.guild.id
-    unlock_server_file(server_id)
-    return await ctx.send(error)
+
+    # This prevents any commands with local handlers being handled here in on_command_error.
+    if hasattr(ctx.command, 'on_error'):
+        print("Error has on_error attribute, do not process error.")
+        return
+
+    # This prevents any cogs with an overwritten cog_command_error being handled here.
+    cog = ctx.cog
+    if cog:
+        if cog._get_overridden_method(cog.cog_command_error) is not None:
+            print("Cog has cog_command_error, allow cog to process this error.")
+            return
+
+    ignored = (commands.CommandNotFound) # 
+
+    # Allows us to check for original exceptions raised and sent to CommandInvokeError.
+    # If nothing is found. We keep the exception passed to on_command_error.
+    error = getattr(error, 'original', error)
+
+    # Anything in ignored will return and prevent anything happening.
+    if isinstance(error, ignored):
+        print("Error is an ignored error instance.")
+        return
+
+    if isinstance(error, commands.DisabledCommand):
+        await ctx.send(f'{ctx.command} has been disabled.')
+
+    elif isinstance(error, commands.NoPrivateMessage):
+        try:
+            await ctx.author.send(f'{ctx.command} cannot be used in Private Messages.')
+        except discord.HTTPException:
+            pass
+
+    # For this error example we check to see where it came from...
+    elif isinstance(error, commands.BadArgument):
+        if ctx.command.qualified_name == 'tag list':  # Check if the command being invoked is 'tag list'
+            await ctx.send('I could not find that member. Please try again.')
+
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send(error)
+
+    else:
+        # All other Errors not returned come here. And we can just print the default TraceBack.
+        print('Unknown exception in command {}:'.format(ctx.command), file=sys.stderr)
+        traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+        await ctx.send(error)
 
 bot.add_cog(BotManagement(bot))
 bot.add_cog(HierarchyManagement(bot))
