@@ -525,7 +525,7 @@ class PlayerManagement(commands.Cog):
                 await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not promote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted role {tier_object["role_id"]} still exists in the hierarchy.')
                 return await ctx.send(f'Role {tier_object["role_id"]} was deleted but still exists in the hierarchy.')
             parent_role = discord.utils.get(ctx.guild.roles, id=tier_object['parent_role_id'])
-            if int(tier_object['parent_role_id']) is not 0 and parent_role is None:
+            if int(tier_object['parent_role_id']) != 0 and parent_role is None:
                 await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not promote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted parent role {tier_object["parent_role_id"]} still exists in the hierarchy.')
                 return await ctx.send(f'Parent role {tier_object["parent_role_id"]} was deleted but still exists in the hierarchy.')
             tier_object['role'] = role
@@ -606,7 +606,7 @@ class PlayerManagement(commands.Cog):
                 await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not promote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted role {tier_object["role_id"]} still exists in the hierarchy.')
                 return await ctx.send(f'Role {tier_object["role_id"]} was deleted but still exists in the hierarchy.')
             parent_role = discord.utils.get(ctx.guild.roles, id=tier_object['parent_role_id'])
-            if int(tier_object['parent_role_id']) is not 0 and parent_role is None:
+            if int(tier_object['parent_role_id']) != 0 and parent_role is None:
                 await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not promote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted parent role {tier_object["parent_role_id"]} still exists in the hierarchy.')
                 return await ctx.send(f'Parent role {tier_object["parent_role_id"]} was deleted but still exists in the hierarchy.')
             tier_object['role'] = role
@@ -668,7 +668,7 @@ class PlayerManagement(commands.Cog):
                 await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not promote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted role {tier_object["role_id"]} still exists in the hierarchy.')
                 return await ctx.send(f'Role {tier_object["role_id"]} was deleted but still exists in the hierarchy.')
             parent_role = discord.utils.get(ctx.guild.roles, id=tier_object['parent_role_id'])
-            if int(tier_object['parent_role_id']) is not 0 and parent_role is None:
+            if int(tier_object['parent_role_id']) != 0 and parent_role is None:
                 await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not promote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted parent role {tier_object["parent_role_id"]} still exists in the hierarchy.')
                 return await ctx.send(f'Parent role {tier_object["parent_role_id"]} was deleted but still exists in the hierarchy.')
             tier_object['role'] = role
@@ -748,7 +748,7 @@ class PlayerManagement(commands.Cog):
                 await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not promote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted role {tier_object["role_id"]} still exists in the hierarchy.')
                 return await ctx.send(f'Role {tier_object["role_id"]} was deleted but still exists in the hierarchy.')
             parent_role = discord.utils.get(ctx.guild.roles, id=tier_object['parent_role_id'])
-            if int(tier_object['parent_role_id']) is not 0 and parent_role is None:
+            if int(tier_object['parent_role_id']) != 0 and parent_role is None:
                 await logger(ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not promote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted parent role {tier_object["parent_role_id"]} still exists in the hierarchy.')
                 return await ctx.send(f'Parent role {tier_object["parent_role_id"]} was deleted but still exists in the hierarchy.')
             tier_object['role'] = role
@@ -774,7 +774,7 @@ class PlayerManagement(commands.Cog):
             if tier_object['demotion_min_depth'] <= calculated_depth <= tier_object['demotion_max_depth']:
                 # if tier_to_demote_from is not None:
                 await Member.remove_roles(Tier)
-                await logger(ctx, f'{ctx.author.name} {ctx.author.mention} unassignmed {Member.name} {Member.mention} from role {Tier.name} {Tier.mention}.')
+                await logger(ctx, f'{ctx.author.name} {ctx.author.mention} unassigned {Member.name} {Member.mention} from role {Tier.name} {Tier.mention}.')
                 return await ctx.send(f"Unassigned {Tier.mention} from {Member.mention}.")
             else:
                 # Might send multiple times for multiple roles
@@ -782,10 +782,12 @@ class PlayerManagement(commands.Cog):
                 await ctx.send( f'Your role <@&{tier_object["role_id"]}> can only unassign between {tier_object["demotion_min_depth"]} and {tier_object["demotion_max_depth"]} roles down, inclusively.')
         return
 
+intents = discord.Intents(messages=True, members=True, guilds=True)
+
 description = '''
 Replacement for the "Manage Roles" permission that allows for multiple hierarchies to be defined in Discord roles.
 '''
-bot = commands.Bot(command_prefix='^', description=description)
+bot = commands.Bot(command_prefix='^', description=description, intents=intents)
 
 @bot.event
 async def on_ready():
