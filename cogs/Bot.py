@@ -7,11 +7,22 @@ from os import path
 from pathlib import Path
 import json
 from discord_token import token
+from typing import Union
 
-from HierarchiesUtilities import lock_server_file, get_server_json, save_server_file, unlock_server_file, logger, has_manage_roles
+import importlib
+
+from cogs.HierarchiesUtilities import lock_server_file, get_server_json, save_server_file, unlock_server_file, logger, has_manage_roles
+
 
 class BotManagement(commands.Cog):
     """Commands for managing the Hierarchies bot."""
+
+    def __new__(cls):
+        if cls._instance is None:
+            print('Creating the object')
+            cls._instance = super(BotManagement, cls).__new__(cls)
+            # Put any initialization here.
+        return cls._instance
 
     def __init__(self, bot):
         self.bot = bot
@@ -33,7 +44,7 @@ class BotManagement(commands.Cog):
 
         # Can only log setlogger to console, not Discord
         print(f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) ran `setlogger` <#{channel.mention}.')
-        return await ctx.send(f'Set logger to <#{channel.mention}.')
+        return await ctx.send(f'Set logger channel to {channel.mention}.')
 
     @commands.command(pass_context=True)
     @has_manage_roles()

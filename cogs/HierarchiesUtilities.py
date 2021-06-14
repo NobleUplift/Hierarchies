@@ -11,7 +11,6 @@ from typing import Union
 
 import importlib
 
-
 class NoManageRoles(commands.CheckFailure):
     pass
 
@@ -76,5 +75,5 @@ def has_manage_roles():
             return True
         else:
             raise NoManageRoles('You must have the Manage Roles permission to create, delete, and modify hierarchies.')
-        return commands.check(predicate)
+    return commands.check(predicate)
 

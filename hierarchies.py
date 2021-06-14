@@ -9,9 +9,10 @@ import json
 from discord_token import token
 from typing import Union
 
-import BotManagement
-import HierarchyManagement
-import PlayerManagement
+from cogs.Bot import BotManagement
+from cogs.Hierarchy import HierarchyManagement
+from cogs.Player import PlayerManagement
+from custom.Custom import CustomManagement
 
 intents = discord.Intents(messages=True, members=True, guilds=True)
 
@@ -91,4 +92,5 @@ async def on_command_error(ctx: discord.ext.commands.Context, error: Exception):
 bot.add_cog(BotManagement(bot))
 bot.add_cog(HierarchyManagement(bot))
 bot.add_cog(PlayerManagement(bot))
+bot.add_cog(CustomManagement(bot))
 bot.run(token)

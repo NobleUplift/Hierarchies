@@ -3,3 +3,5 @@ __pycache__
 venv
 *.json
 discord_token.py
+Custom.py
+DatabaseConfig.py

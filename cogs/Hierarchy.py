@@ -2,16 +2,28 @@ import sys
 import traceback
 import discord
 from discord.ext import commands
+
 import os.path
 from os import path
 from pathlib import Path
+
 import json
 from discord_token import token
+from typing import Union
 
-from HierarchiesUtilities import lock_server_file, get_server_json, save_server_file, unlock_server_file, logger, has_manage_roles
+import importlib
+
+from cogs.HierarchiesUtilities import lock_server_file, get_server_json, save_server_file, unlock_server_file, logger, has_manage_roles
 
 class HierarchyManagement(commands.Cog):
     """Commands for managing creating, modifying, and deleting hierarchies."""
+
+    def __new__(cls):
+        if cls._instance is None:
+            print('Creating the object')
+            cls._instance = super(HierarchyManagement, cls).__new__(cls)
+            # Put any initialization here.
+        return cls._instance
 
     def __init__(self, bot):
         self.bot = bot
@@ -28,6 +40,7 @@ class HierarchyManagement(commands.Cog):
         if len(server_json['hierarchies']) == 0:
             return await ctx.send('This server has no hierarchies.')
 
+        # TODO: Paginate this result in case
         server_hierarchies = server_json['hierarchies']
         retval = 'Hierarchies: \n'
         for n in server_hierarchies:

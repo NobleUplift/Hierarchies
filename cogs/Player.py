@@ -7,12 +7,23 @@ from os import path
 from pathlib import Path
 import json
 from discord_token import token
+from typing import Union
 
-from HierarchiesUtilities import lock_server_file, get_server_json, save_server_file, unlock_server_file, logger, has_manage_roles
+import importlib
+
+from cogs.HierarchiesUtilities import lock_server_file, get_server_json, save_server_file, unlock_server_file, logger, has_manage_roles
 
 class PlayerManagement(commands.Cog):
     """Commands for managing player roles."""
+    _instance = None
 
+    def __new__(cls):
+        if cls._instance is None:
+            print('Creating the object')
+            cls._instance = super(PlayerManagement, cls).__new__(cls)
+            # Put any initialization here.
+        return cls._instance
+    
     def __init__(self, bot):
         self.bot = bot
         self._last_member = None
@@ -90,7 +101,9 @@ class PlayerManagement(commands.Cog):
             if tier_object['promotion_min_depth'] <= calculated_depth <= tier_object['promotion_max_depth']:
                 if tier_to_promote_from is not None:
                     await Member.remove_roles(tier_to_promote_from['role'])
+
                 await Member.add_roles(tier_to_promote_to['role'])
+
                 await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) promoted {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention}.')
                 return await ctx.send(f"Promoted {Member.mention} to {Tier.mention}.")
             else:
@@ -139,7 +152,7 @@ class PlayerManagement(commands.Cog):
                 tier_to_promote_to = tier_object
 
         if len(author_tiers) == 0:
-            await logger(ctx,f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not assign {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because he/she has no roles in hierarchy {hierarchy_name} that are capable of assigning.')
+            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not assign {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because he/she has no roles in hierarchy {hierarchy_name} that are capable of assigning.')
             return await ctx.send(f'You have no roles in hierarchy {hierarchy_name} that are capable of promoting. You cannot promote members.')
 
         if tier_to_promote_to is None:
@@ -157,7 +170,7 @@ class PlayerManagement(commands.Cog):
             else:
                 # Might send multiple times for multiple roles
                 await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not assign {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because role <@&{tier_object["role_id"]}> can only promote between {tier_object["promotion_min_depth"]} and {tier_object["promotion_max_depth"]} roles down, inclusively.')
-                await ctx.send( f'Your role <@&{tier_object["role_id"]}> can only assign between {tier_object["promotion_min_depth"]} and {tier_object["promotion_max_depth"]} roles down, inclusively.')
+                await ctx.send(f'Your role <@&{tier_object["role_id"]}> can only assign between {tier_object["promotion_min_depth"]} and {tier_object["promotion_max_depth"]} roles down, inclusively.')
         return
 
     @commands.command(pass_context=True)
@@ -237,7 +250,7 @@ class PlayerManagement(commands.Cog):
                 return await ctx.send(f"Demoted {Member.mention} to {Tier.mention}.")
             else:
                 # Might send multiple times for multiple roles
-                await logger(ctx,f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not demote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because role <@&{tier_object["role_id"]}> can only demote between {tier_object["demotion_min_depth"]} and {tier_object["demotion_max_depth"]} roles down, inclusively.')
+                await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not demote {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because role <@&{tier_object["role_id"]}> can only demote between {tier_object["demotion_min_depth"]} and {tier_object["demotion_max_depth"]} roles down, inclusively.')
                 await ctx.send(f'Your role <@&{tier_object["role_id"]}> can only demote between {tier_object["demotion_min_depth"]} and {tier_object["demotion_max_depth"]} roles down, inclusively.')
         return
 
