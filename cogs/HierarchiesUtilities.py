@@ -45,7 +45,7 @@ def save_server_file(server_id, server_json):
         server_json['hierarchies'] = {}
     if 'roles' not in server_json:
         server_json['roles'] = {}
-    contents = json.dumps(server_json)
+    contents = json.dumps(server_json, indent=4)
     with open(str(server_id) + '.json', "w") as json_file:
         json_file.write(contents)
 
