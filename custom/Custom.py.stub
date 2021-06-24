@@ -25,26 +25,14 @@ class CustomManagement(commands.Cog):
 		self.bot = bot
 		self._last_member = None
 
-	def prepromote(self, hierarchy, member, role):
-		return
+	async def promote_hooks(self, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role, NewTier: discord.Role, HierarchyName: str, role_change_function: callable):
+		return True
 
-	def postpromote(self, hierarchy, member, role):
-		return
+	async def demote_hooks(self, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role, NewTier: discord.Role, HierarchyName: str, role_change_function: callable):
+	    return True
 
-	def predemote(self, hierarchy, member, role):
-		return
+	async def assign_hooks(self, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role, NewTier: discord.Role, HierarchyName: str, role_change_function: callable):
+		return True
 
-	def postdemote(self, hierarchy, member, role):
-		return
-
-	def preassign(self, hierarchy, member, role):
-		return
-
-	def postassign(self, hierarchy, member, role):
-		return
-
-	def preunassign(self, hierarchy, member, role):
-		return
-
-	def postunassign(self, hierarchy, member, role):
-		return
+	async def unassign_hooks(self, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role, NewTier: discord.Role, HierarchyName: str, role_change_function: callable):
+	    return True
