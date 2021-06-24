@@ -6,8 +6,8 @@ if hash python3 2>/dev/null; then
       echo "Running $cwd with Auto-Restart!"
       while :
       do
-            sudo pip3.7 install -U discord
-            python3 $cwd.py | tee ${cwd}.log
+            #sudo pip3.7 install -U discord pymysql sshtunnel
+            python3 -u $cwd.py | tee -a ${cwd}.log 2>&1
             sleep 5s
 	  done
       echo "Done"
