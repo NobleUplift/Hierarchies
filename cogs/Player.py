@@ -210,7 +210,7 @@ class PlayerManagement(commands.Cog):
 
                 if callback_result:
                     await logger(self.bot, ctx, f'{ctx.author.name} {ctx.author.mention} {"demoted" if command == "demote" else "unassigned"} {Member.name} {Member.mention} to {Tier.name} {Tier.mention}.')
-                    return await ctx.send(f'{"Demoted" if command == "demote" else "Unassigned"} {Member.mention} to {Tier.mention}.')
+                    return await ctx.send(f'{"Demoted" if command == "demote" else "Unassigned"} {Member.mention} {"to" if command == "demote" else "from"} {Tier.mention}.')
                 # Allow callback to handle output on false
                 # else:
             else:

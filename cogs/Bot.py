@@ -16,10 +16,10 @@ from cogs.HierarchiesUtilities import lock_server_file, get_server_json, save_se
 
 class BotManagement(commands.Cog):
     """Commands for managing the Hierarchies bot."""
+    _instance = None
 
-    def __new__(cls):
+    def __new__(cls, bot):
         if cls._instance is None:
-            print('Creating the object')
             cls._instance = super(BotManagement, cls).__new__(cls)
             # Put any initialization here.
         return cls._instance
