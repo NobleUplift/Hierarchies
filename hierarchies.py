@@ -46,6 +46,7 @@ async def on_command_error(ctx: discord.ext.commands.Context, error: Exception):
     # This prevents any commands with local handlers being handled here in on_command_error.
     if hasattr(ctx.command, 'on_error'):
         print("Error has on_error attribute, do not process error.")
+        ctx.send(error)
         return
 
     # This prevents any cogs with an overwritten cog_command_error being handled here.
@@ -53,9 +54,10 @@ async def on_command_error(ctx: discord.ext.commands.Context, error: Exception):
     if cog:
         if cog._get_overridden_method(cog.cog_command_error) is not None:
             print("Cog has cog_command_error, allow cog to process this error.")
+            ctx.send(error)
             return
 
-    ignored = (commands.CommandNotFound) # 
+    ignored = (commands.CommandNotFound)
 
     # Allows us to check for original exceptions raised and sent to CommandInvokeError.
     # If nothing is found. We keep the exception passed to on_command_error.
@@ -81,13 +83,13 @@ async def on_command_error(ctx: discord.ext.commands.Context, error: Exception):
             await ctx.send('I could not find that member. Please try again.')
 
     elif isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send(error)
+        await ctx.send("Error: " + str(error))
 
     else:
         # All other Errors not returned come here. And we can just print the default TraceBack.
         print('Unknown exception in command {}:'.format(ctx.command), file=sys.stderr)
         traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
-        await ctx.send(error)
+        await ctx.send("Error: " + str(error))
 
 bot.add_cog(BotManagement(bot))
 bot.add_cog(HierarchyManagement(bot))
