@@ -25,7 +25,8 @@ class PlayerManagement(commands.Cog):
 
         if str(Tier.id) not in server_json['roles']:
             await logger(self.bot, ctx,  f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because role {Tier.mention} does not belong to a hierarchy.')
-            return await ctx.send(f'Role {Tier.mention} does not belong to a hierarchy.')
+            await ctx.send(f'Role {Tier.mention} does not belong to a hierarchy.')
+            return None, None
         hierarchy_name = server_json['roles'][str(Tier.id)]
         hierarchy = server_json['hierarchies'][hierarchy_name]['tiers']
         return hierarchy_name, hierarchy
@@ -49,11 +50,13 @@ class PlayerManagement(commands.Cog):
             role = discord.utils.get(ctx.guild.roles, id=tier_object['role_id'])
             if role is None:
                 await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted role {tier_object["role_id"]} still exists in the hierarchy.')
-                return await ctx.send(f'Role {tier_object["role_id"]} was deleted but still exists in the hierarchy.')
+                await ctx.send(f'Role {tier_object["role_id"]} was deleted but still exists in the hierarchy.')
+                return None, None, None, None
             parent_role = discord.utils.get(ctx.guild.roles, id=tier_object['parent_role_id'])
             if int(tier_object['parent_role_id']) != 0 and parent_role is None:
                 await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted parent role {tier_object["parent_role_id"]} still exists in the hierarchy.')
-                return await ctx.send(f'Parent role {tier_object["parent_role_id"]} was deleted but still exists in the hierarchy.')
+                await ctx.send(f'Parent role {tier_object["parent_role_id"]} was deleted but still exists in the hierarchy.')
+                return None, None, None, None
             tier_object['role'] = role
             tier_object['parent_role'] = parent_role
 
@@ -68,11 +71,13 @@ class PlayerManagement(commands.Cog):
 
         if len(author_tiers) == 0:
             await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because he/she has no roles in hierarchy {hierarchy_name} that are capable of promoting.')
-            return await ctx.send(f'You have no roles in hierarchy {hierarchy_name} with permissions. You cannot {command} members.')
+            await ctx.send(f'You have no roles in hierarchy {hierarchy_name} with permissions. You cannot {command} members.')
+            return None, None, None, None
 
         if tier_target is None:
             await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because role exists in role lookup but not in hierarchy tree.')
-            return await ctx.send(f'Hierarchy {hierarchy_name} is corrupted. Role exists in role lookup but not in hierarchy tree. You should never see this error.')
+            await ctx.send(f'Hierarchy {hierarchy_name} is corrupted. Role exists in role lookup but not in hierarchy tree. You should never see this error.')
+            return None, None, None, None
 
         return key_prefix, author_tiers, target_tiers, tier_target
 
@@ -80,11 +85,16 @@ class PlayerManagement(commands.Cog):
     async def _core_promote_assign(self, command: str, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role):
         """Core method used in promote/assign commands."""
         hierarchy_name, hierarchy = await self._core_get_hierarchies(command, ctx, Member, Tier)
+        if hierarchy_name is None or hierarchy is None:
+            return
         key_prefix, author_tiers, target_tiers, tier_target = await self._core_get_tier_lists(command, ctx, Member, Tier, hierarchy_name, hierarchy)
+        if key_prefix is None or author_tiers is None or target_tiers is None or tier_target is None:
+            return
         tier_source = None
 
         if command == 'promote':
             for tier_object in target_tiers:
+                print(f'{tier_object["role"]} <@&{tier_object["role_id"]}> == {tier_object["parent_role"]} <@&{tier_target["parent_role_id"]}>')
                 # Try to locate the role that we are going to remove before promoting/assigning
                 if tier_object['parent_role_id'] == Tier.id:
                     if tier_source is None:
@@ -105,7 +115,8 @@ class PlayerManagement(commands.Cog):
         for tier_object in author_tiers:
             print(f'Calculating depth {tier_target["depth"]} - {tier_object["depth"]}')
             calculated_depth = tier_target['depth'] - tier_object['depth']
-            if tier_object[key_prefix + '_min_depth'] <= calculated_depth <= tier_object[key_prefix + '_max_depth']:
+            print(f"Calculated depth: {tier_object['demotion_min_depth']} < {calculated_depth} <= {tier_object['demotion_max_depth']}")
+            if tier_object[key_prefix + '_min_depth'] < calculated_depth <= tier_object[key_prefix + '_max_depth']:
 
                 async def role_change_function(Member, Tier, NewTier):
                     if tier_source is not None:
@@ -127,9 +138,8 @@ class PlayerManagement(commands.Cog):
                 #else:
             else:
                 # Might send multiple times for multiple roles
-                await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to ' +
-                             f'{Tier.mention} because role <@&{tier_object["role_id"]}> can only {command} between {tier_object[key_prefix + "_min_depth"]} and {tier_object[key_prefix + "_max_depth"]} roles down, inclusively.')
-                await ctx.send(f'Your role <@&{tier_object["role_id"]}> can only {command} between {tier_object[key_prefix + "_min_depth"]} and {tier_object[key_prefix + "_max_depth"]} roles down, inclusively.')
+                await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because role <@&{tier_object["role_id"]}> can only {command} between {tier_object[key_prefix + "_min_depth"]} and {tier_object[key_prefix + "_max_depth"]} roles down, inclusively.')
+                return await ctx.send(f'Your role <@&{tier_object["role_id"]}> can only {command} between {tier_object[key_prefix + "_min_depth"]} and {tier_object[key_prefix + "_max_depth"]} roles down, inclusively.')
         return
 
     @commands.command(pass_context=True)
@@ -145,17 +155,17 @@ class PlayerManagement(commands.Cog):
     async def _core_demote_unassign(self, command: str, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role):
         """Core method used in promote/assign commands."""
         hierarchy_name, hierarchy = await self._core_get_hierarchies(command, ctx, Member, Tier)
+        if hierarchy_name is None:
+            return
         key_prefix, author_tiers, target_tiers, tier_target = await self._core_get_tier_lists(command, ctx, Member, Tier, hierarchy_name, hierarchy)
+        if key_prefix is None or author_tiers is None or target_tiers is None or tier_target is None:
+            return
         tier_source = None
 
         if command == 'demote':
-            if tier_target is None:
-                await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because role exists in role lookup but not in hierarchy tree.')
-                return await ctx.send(f'Hierarchy {hierarchy_name} is corrupted. Role exists in role lookup but not in hierarchy tree. You should never see this error.')
-
             for tier_object in target_tiers:
                 # Try to locate the role that we are going to remove before demoting
-                print(f'{tier_object["role"]} <@&{tier_object["role_id"]}> == {tier_object["parent_role"]} <@&{tier_target["parent_role_id"]}')
+                print(f'{tier_object["role"]} <@&{tier_object["role_id"]}> == {tier_object["parent_role"]} <@&{tier_target["parent_role_id"]}>')
                 if tier_object['role_id'] == tier_target['parent_role_id']:
                     if tier_source is None:
                         # If the role was found and it is the only role, assign it
@@ -168,22 +178,28 @@ class PlayerManagement(commands.Cog):
             if tier_source is None:
                 await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because {Member.mention} does not have its child role.')
                 return await ctx.send(f'You cannot {command} a user at the lowest level of the hierarchy. Use unassign for this instead.')
-        elif command == 'unassign':
-            tier_source = tier_target
-            tier_target = None
-        else:
-            raise Exception("This error should be impossible.")
+        #elif command == 'unassign':
+        #    tier_source = tier_target
+        #    tier_target = None
 
         # Iterate over author's tiers looking for role that can demote
         for tier_object in author_tiers:
             print(f'Calculating depth {tier_target["depth"]} - {tier_object["depth"]}')
             calculated_depth = tier_target['depth'] - tier_object['depth']
-            if tier_object['demotion_min_depth'] <= calculated_depth <= tier_object['demotion_max_depth']:
+            print(f"Calculated depth: {tier_object['demotion_min_depth']} < {calculated_depth} <= {tier_object['demotion_max_depth']}")
+            if tier_object['demotion_min_depth'] < calculated_depth <= tier_object['demotion_max_depth']:
 
-                async def role_change_function(Member, Tier, NewTier):
-                    await Member.remove_roles(Tier)
-                    if tier_target is not None:
+                if command == 'demote':
+                    async def role_change_function(Member, Tier, NewTier):
+                        await Member.remove_roles(Tier)
                         await Member.add_roles(NewTier)
+                        return True
+                elif command == 'unassign':
+                    async def role_change_function(Member, Tier, NewTier):
+                        #await Member.remove_roles(Tier)
+                        #await Member.add_roles(NewTier)
+                        await Member.remove_roles(NewTier)
+                        return True
 
                 custom_cog = CustomManagement(self.bot)
                 custom_method = getattr(custom_cog, command + '_hooks', None)
