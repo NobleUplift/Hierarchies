@@ -17,10 +17,10 @@ from cogs.HierarchiesUtilities import lock_server_file, get_server_json, save_se
 
 class HierarchyManagement(commands.Cog):
     """Commands for managing creating, modifying, and deleting hierarchies."""
+    _instance = None
 
-    def __new__(cls):
+    def __new__(cls, bot):
         if cls._instance is None:
-            print('Creating the object')
             cls._instance = super(HierarchyManagement, cls).__new__(cls)
             # Put any initialization here.
         return cls._instance
@@ -122,15 +122,20 @@ class HierarchyManagement(commands.Cog):
             await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to create a hierarchy `{HierarchyName}` that already exists.')
             return await ctx.send('Hierarchy "' + HierarchyName + '" already exists.')
 
+        if str(RootTier.id) in server_json['roles']:
+            unlock_server_file(server_id)
+            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to add root tier {RootTier.mention} but the role already exists in a hierarchy.')
+            return await ctx.send(f'Role already exists in hierarchy `{server_json["roles"][str(RootTier.id)]}`.')
+
         server_json_hierarchies[HierarchyName] = {
             'tiers': [{
                 'role_id': RootTier.id,
                 'parent_role_id': 0,
                 'depth': 0,
                 'promotion_min_depth': 0,
-                'promotion_max_depth': 2147483647,
+                'promotion_max_depth': 500,
                 'demotion_min_depth': 0,
-                'demotion_max_depth': 2147483647
+                'demotion_max_depth': 500
             }],
             'maximum_depth': 0
         }
@@ -201,7 +206,9 @@ class HierarchyManagement(commands.Cog):
             PromotionMinimumDepth: int = -1,
             PromotionMaximumDepth: int = -1,
             DemotionMinimumDepth: int = -1,
-            DemotionMaximumDepth: int = -1
+            DemotionMaximumDepth: int = -1,
+            PromoteDemoteOnly: bool = False,
+            AssignUnassignOnly: bool = False,
         ):
         """Adds a role to a Hierarchy."""
 
@@ -270,7 +277,9 @@ class HierarchyManagement(commands.Cog):
             PromotionMinimumDepth: int = -1,
             PromotionMaximumDepth: int = -1,
             DemotionMinimumDepth: int = -1,
-            DemotionMaximumDepth: int = -1
+            DemotionMaximumDepth: int = -1,
+            PromoteDemoteOnly: bool = False,
+            AssignUnassignOnly: bool = False,
         ):
         """Modifies a role within a hierarchy."""
 
