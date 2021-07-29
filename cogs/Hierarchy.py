@@ -112,6 +112,10 @@ class HierarchyManagement(commands.Cog):
             await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to create a hierarchy `{HierarchyName}` with spaces in it.')
             return await ctx.send('Hierarchies name "' + HierarchyName + '" cannot have spaces in it.')
 
+        if len(HierarchyName) > 32:
+            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to create a hierarchy `{HierarchyName}` with more than 32 characters.')
+            return await ctx.send('Hierarchies name "' + HierarchyName + '" cannot exceed 32 characters.')
+
         server_id = ctx.message.guild.id
         lock_server_file(server_id)
         server_json = get_server_json(server_id)
