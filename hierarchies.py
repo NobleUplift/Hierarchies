@@ -39,9 +39,6 @@ async def on_command_error(ctx: discord.ext.commands.Context, error: Exception):
             error: commands.CommandError
                 The Exception raised.
             """
-    print("ERROR TRIGGERED! CAUGHT BY ON_COMMAND_ERROR")
-    print(ctx)
-    print(error)
 
     # This prevents any commands with local handlers being handled here in on_command_error.
     if hasattr(ctx.command, 'on_error'):
@@ -79,8 +76,18 @@ async def on_command_error(ctx: discord.ext.commands.Context, error: Exception):
 
     # For this error example we check to see where it came from...
     elif isinstance(error, commands.BadArgument):
-        if ctx.command.qualified_name == 'tag list':  # Check if the command being invoked is 'tag list'
-            await ctx.send('I could not find that member. Please try again.')
+        if ctx.command.qualified_name == 'setlogger' \
+                or ctx.command.qualified_name == 'show' \
+                or ctx.command.qualified_name == 'create' \
+                or ctx.command.qualified_name == 'delete' \
+                or ctx.command.qualified_name == 'add' \
+                or ctx.command.qualified_name == 'remove' \
+                or ctx.command.qualified_name == 'modify' \
+                or ctx.command.qualified_name == 'promote' \
+                or ctx.command.qualified_name == 'demote' \
+                or ctx.command.qualified_name == 'assign' \
+                or ctx.command.qualified_name == 'unassign':
+            await ctx.send("Error: " + str(error))
 
     elif isinstance(error, commands.MissingRequiredArgument):
         await ctx.send("Error: " + str(error))
