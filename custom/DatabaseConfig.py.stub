@@ -1,0 +1,13 @@
+import importlib
+
+remote_host = ''
+remote_port = 22
+
+remote_user = ''
+remote_password = ''
+
+local_host = ''
+local_port = 
+
+mysql_user = ""
+mysql_password = ""

@@ -12,27 +12,26 @@ from discord_token import token
 from cogs.HierarchiesUtilities import lock_server_file, get_server_json, save_server_file, unlock_server_file, logger, has_manage_roles
 
 class CustomManagement(commands.Cog):
-	"""Commands for custom commands."""
+    """Commands for custom commands."""
 
-	def __new__(cls):
-		if cls._instance is None:
-			print('Creating the object')
-			cls._instance = super(CustomManagement, cls).__new__(cls)
-			# Put any initialization here.
-		return cls._instance
+    def __new__(cls, bot):
+        if cls._instance is None:
+            cls._instance = super(CustomManagement, cls).__new__(cls)
+            # Put any initialization here.
+        return cls._instance
 
-	def __init__(self, bot):
-		self.bot = bot
-		self._last_member = None
+    def __init__(self, bot):
+        self.bot = bot
+        self._last_member = None
 
-	async def promote_hooks(self, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role, NewTier: discord.Role, HierarchyName: str, role_change_function: callable):
-		return True
+    async def promote_hooks(self, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role, NewTier: discord.Role, HierarchyName: str, role_change_function: callable):
+        return await role_change_function(Member, Tier, NewTier)
 
-	async def demote_hooks(self, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role, NewTier: discord.Role, HierarchyName: str, role_change_function: callable):
-	    return True
+    async def demote_hooks(self, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role, NewTier: discord.Role, HierarchyName: str, role_change_function: callable):
+        return await role_change_function(Member, Tier, NewTier)
 
-	async def assign_hooks(self, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role, NewTier: discord.Role, HierarchyName: str, role_change_function: callable):
-		return True
+    async def assign_hooks(self, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role, NewTier: discord.Role, HierarchyName: str, role_change_function: callable):
+        return await role_change_function(Member, Tier, NewTier)
 
-	async def unassign_hooks(self, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role, NewTier: discord.Role, HierarchyName: str, role_change_function: callable):
-	    return True
+    async def unassign_hooks(self, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role, NewTier: discord.Role, HierarchyName: str, role_change_function: callable):
+        return await role_change_function(Member, Tier, NewTier)
