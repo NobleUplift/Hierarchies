@@ -115,8 +115,8 @@ class PlayerManagement(commands.Cog):
         for tier_object in author_tiers:
             print(f'Calculating depth {tier_target["depth"]} - {tier_object["depth"]}')
             calculated_depth = tier_target['depth'] - tier_object['depth']
-            print(f"Calculated depth: {tier_object['demotion_min_depth']} < {calculated_depth} <= {tier_object['demotion_max_depth']}")
-            if tier_object[key_prefix + '_min_depth'] < calculated_depth <= tier_object[key_prefix + '_max_depth']:
+            print(f"Calculated depth: {tier_object['demotion_min_depth']} <= {calculated_depth} <= {tier_object['demotion_max_depth']}")
+            if tier_object[key_prefix + '_min_depth'] <= calculated_depth <= tier_object[key_prefix + '_max_depth']:
 
                 async def role_change_function(Member, Tier, NewTier):
                     if tier_source is not None:
@@ -186,8 +186,8 @@ class PlayerManagement(commands.Cog):
         for tier_object in author_tiers:
             print(f'Calculating depth {tier_target["depth"]} - {tier_object["depth"]}')
             calculated_depth = tier_target['depth'] - tier_object['depth']
-            print(f"Calculated depth: {tier_object['demotion_min_depth']} < {calculated_depth} <= {tier_object['demotion_max_depth']}")
-            if tier_object['demotion_min_depth'] < calculated_depth <= tier_object['demotion_max_depth']:
+            print(f"Calculated depth: {tier_object['demotion_min_depth']} <= {calculated_depth} <= {tier_object['demotion_max_depth']}")
+            if tier_object['demotion_min_depth'] <= calculated_depth <= tier_object['demotion_max_depth']:
 
                 if command == 'demote':
                     async def role_change_function(Member, Tier, NewTier):
