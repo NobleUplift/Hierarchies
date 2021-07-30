@@ -1,7 +1,10 @@
 import sys
 import traceback
+
 import discord
 from discord.ext import commands
+from discord import Member
+from discord.ext.commands import has_permissions, MissingPermissions
 
 import os.path
 from os import path
@@ -30,7 +33,7 @@ class HierarchyManagement(commands.Cog):
         self._last_member = None
 
     @commands.command(pass_context=True)
-    @has_manage_roles()
+    @has_permissions(manage_roles=True)
     async def list(self, ctx: discord.ext.commands.Context):
         """Lists all Hierarchies."""
 
@@ -49,8 +52,8 @@ class HierarchyManagement(commands.Cog):
         print(f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) listed hierarchies.')
         return await ctx.send(retval)
 
-    @commands.command()
-    @has_manage_roles()
+    @commands.command(pass_context=True)
+    @has_permissions(manage_roles=True)
     async def show(self, ctx: discord.ext.commands.Context, HierarchyName: str):
         """Shows all the roles in a single Hierarchy."""
 
@@ -104,7 +107,7 @@ class HierarchyManagement(commands.Cog):
         return await ctx.send(retval)
 
     @commands.command(pass_context=True)
-    @has_manage_roles()
+    @has_permissions(manage_roles=True)
     async def create(self, ctx: discord.ext.commands.Context, HierarchyName: str, RootTier: discord.Role):
         """Creates a new Hierarchy."""
 
@@ -152,7 +155,7 @@ class HierarchyManagement(commands.Cog):
         return await ctx.send('Created hierarchy ' + HierarchyName + '.')
 
     @commands.command(pass_context=True)
-    @has_manage_roles()
+    @has_permissions(manage_roles=True)
     async def delete(self, ctx: discord.ext.commands.Context, HierarchyName: str):
         """Deletes an existing Hierarchy."""
 
@@ -205,7 +208,7 @@ class HierarchyManagement(commands.Cog):
         return new_hierarchy
 
     @commands.command(pass_context=True)
-    @has_manage_roles()
+    @has_permissions(manage_roles=True)
     async def add(self, ctx: discord.ext.commands.Context, Tier: discord.Role, Parent: discord.Role,
             PromotionMinimumDepth: int = -1,
             PromotionMaximumDepth: int = -1,
@@ -276,7 +279,7 @@ class HierarchyManagement(commands.Cog):
             return await ctx.send(f'**SERVER CORRUPTION!** Parent role {Parent.mention} exists in the server role lookup, but hierarchy `{hierarchy_name}` no longer exists! Please contact the developer.')
 
     @commands.command(pass_context=True)
-    @has_manage_roles()
+    @has_permissions(manage_roles=True)
     async def modify(self, ctx: discord.ext.commands.Context, Tier: discord.Role, Parent: discord.Role,
             PromotionMinimumDepth: int = -1,
             PromotionMaximumDepth: int = -1,
@@ -350,7 +353,7 @@ class HierarchyManagement(commands.Cog):
             return await ctx.send(f'**SERVER CORRUPTION!** Role {Tier.mention} exists in the server role lookup, but hierarchy `{hierarchy_name}` no longer exists! Please contact the developer.')
 
     @commands.command(pass_context=True)
-    @has_manage_roles()
+    @has_permissions(manage_roles=True)
     async def remove(self, ctx: discord.ext.commands.Context, Tier: Union[discord.Role, int]):
         """Removes a role from a hierarchy, linking all former child roles to its parent role. The root role cannot be deleted."""
 

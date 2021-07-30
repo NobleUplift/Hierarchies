@@ -71,7 +71,7 @@ async def logger(bot, ctx, message: str):
 
 def has_manage_roles():
     async def predicate(ctx):
-        if ctx.author and ctx.author.guild_permissions.manage_roles is True:
+        if ctx.author and hasattr(ctx.author, 'guild_permissions') and ctx.author.guild_permissions.manage_roles is True:
             return True
         else:
             raise NoManageRoles('You must have the Manage Roles permission to create, delete, and modify hierarchies.')

@@ -1,7 +1,11 @@
 import sys
 import traceback
+
 import discord
 from discord.ext import commands
+from discord import Member
+from discord.ext.commands import has_permissions, MissingPermissions
+
 import os.path
 from os import path
 from pathlib import Path
@@ -29,7 +33,7 @@ class BotManagement(commands.Cog):
         self._last_member = None
 
     @commands.command(pass_context=True)
-    @has_manage_roles()
+    @has_permissions(manage_roles=True)
     async def setlogger(self, ctx: discord.ext.commands.Context, channel: discord.TextChannel):
         """Sets the channel that Hierarchies commands will be logged to."""
 
@@ -47,7 +51,7 @@ class BotManagement(commands.Cog):
         return await ctx.send(f'Set logger channel to {channel.mention}.')
 
     @commands.command(pass_context=True)
-    @has_manage_roles()
+    @has_permissions(manage_roles=True)
     async def unlock(self, ctx: discord.ext.commands.Context):
         """Unlocks the mutex file if the bot crashes during a Hierarchies command."""
 
