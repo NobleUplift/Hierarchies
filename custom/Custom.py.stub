@@ -13,6 +13,7 @@ from cogs.HierarchiesUtilities import lock_server_file, get_server_json, save_se
 
 class CustomManagement(commands.Cog):
     """Commands for custom commands."""
+    _instance = None
 
     def __new__(cls, bot):
         if cls._instance is None:
