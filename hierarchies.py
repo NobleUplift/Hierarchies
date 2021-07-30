@@ -1,7 +1,10 @@
 import sys
 import traceback
+
 import discord
+from discord import Member
 from discord.ext import commands
+
 import os.path
 from os import path
 from pathlib import Path
@@ -14,6 +17,9 @@ from cogs.Hierarchy import HierarchyManagement
 from cogs.Player import PlayerManagement
 from custom.Custom import CustomManagement
 
+# messages=True for reading Hierarchy commands
+# members=True for changing the roles of members
+# guilds=True for checking the Manage Roles permission
 intents = discord.Intents(messages=True, members=True, guilds=True)
 
 description = '''
@@ -27,6 +33,11 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
+
+
+#@bot.event
+#async def on_message(message: discord.Message):
+#    print(message)
 
 # SOURCE/COPYRIGHT: https://gist.github.com/EvieePy/7822af90858ef65012ea500bcecf1612
 @bot.event
@@ -76,18 +87,7 @@ async def on_command_error(ctx: discord.ext.commands.Context, error: Exception):
 
     # For this error example we check to see where it came from...
     elif isinstance(error, commands.BadArgument):
-        if ctx.command.qualified_name == 'setlogger' \
-                or ctx.command.qualified_name == 'show' \
-                or ctx.command.qualified_name == 'create' \
-                or ctx.command.qualified_name == 'delete' \
-                or ctx.command.qualified_name == 'add' \
-                or ctx.command.qualified_name == 'remove' \
-                or ctx.command.qualified_name == 'modify' \
-                or ctx.command.qualified_name == 'promote' \
-                or ctx.command.qualified_name == 'demote' \
-                or ctx.command.qualified_name == 'assign' \
-                or ctx.command.qualified_name == 'unassign':
-            await ctx.send("Error: " + str(error))
+        await ctx.send("Error: " + str(error))
 
     elif isinstance(error, commands.MissingRequiredArgument):
         await ctx.send("Error: " + str(error))
