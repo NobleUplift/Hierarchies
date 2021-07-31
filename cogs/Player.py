@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 
-from cogs.HierarchiesUtilities import get_server_json, logger
+from cogs.Core import Core
 from custom.Custom import CustomManagement
 
 
@@ -21,10 +21,10 @@ class PlayerManagement(commands.Cog):
 
     async def _core_get_hierarchies(self, command: str, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role):
         server_id = ctx.message.guild.id
-        server_json = get_server_json(server_id)
+        server_json = Core.get_server_json(server_id)
 
         if str(Tier.id) not in server_json['roles']:
-            await logger(self.bot, ctx,  f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because role {Tier.mention} does not belong to a hierarchy.')
+            await Core.logger(self.bot, ctx,  f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because role {Tier.mention} does not belong to a hierarchy.')
             await ctx.send(f'Role {Tier.mention} does not belong to a hierarchy.')
             return None, None
         hierarchy_name = server_json['roles'][str(Tier.id)]
@@ -49,12 +49,12 @@ class PlayerManagement(commands.Cog):
         for tier_object in hierarchy:
             role = discord.utils.get(ctx.guild.roles, id=tier_object['role_id'])
             if role is None:
-                await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted role {tier_object["role_id"]} still exists in the hierarchy.')
+                await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted role {tier_object["role_id"]} still exists in the hierarchy.')
                 await ctx.send(f'Role {tier_object["role_id"]} was deleted but still exists in the hierarchy.')
                 return None, None, None, None
             parent_role = discord.utils.get(ctx.guild.roles, id=tier_object['parent_role_id'])
             if int(tier_object['parent_role_id']) != 0 and parent_role is None:
-                await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted parent role {tier_object["parent_role_id"]} still exists in the hierarchy.')
+                await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because a deleted parent role {tier_object["parent_role_id"]} still exists in the hierarchy.')
                 await ctx.send(f'Parent role {tier_object["parent_role_id"]} was deleted but still exists in the hierarchy.')
                 return None, None, None, None
             tier_object['role'] = role
@@ -70,12 +70,12 @@ class PlayerManagement(commands.Cog):
                 tier_target = tier_object
 
         if len(author_tiers) == 0:
-            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because he/she has no roles in hierarchy {hierarchy_name} that are capable of promoting.')
+            await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because he/she has no roles in hierarchy {hierarchy_name} that are capable of promoting.')
             await ctx.send(f'You have no roles in hierarchy {hierarchy_name} with permissions. You cannot {command} members.')
             return None, None, None, None
 
         if tier_target is None:
-            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because role exists in role lookup but not in hierarchy tree.')
+            await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because role exists in role lookup but not in hierarchy tree.')
             await ctx.send(f'Hierarchy {hierarchy_name} is corrupted. Role exists in role lookup but not in hierarchy tree. You should never see this error.')
             return None, None, None, None
 
@@ -102,13 +102,13 @@ class PlayerManagement(commands.Cog):
                         tier_source = tier_object
                     else:
                         # If multiple roles share this parent
-                        await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because this member has 2 or more child roles in hierarchy {hierarchy_name}.')
+                        await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because this member has 2 or more child roles in hierarchy {hierarchy_name}.')
                         return await ctx.send(f'This member has 2 or more child roles in hierarchy {hierarchy_name}. You cannot {command} a user who has two tiers at the same level.')
 
             # Enforce tier_source as a requirement when promoting/assigning. Only allow ^assign for lowest role
             # TODO: Remove maximum_depth, no longer useful
             if tier_source is None:  # and int(tier_target["depth"]) != int(server_json["hierarchies"][hierarchy_name]["maximum_depth"])
-                await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because {Member.mention} does not have its child role.')
+                await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because {Member.mention} does not have its child role.')
                 return await ctx.send(f'Cannot {command} to <@&{tier_target["role_id"]}> because {Member.mention} does not have its child role.')
 
         # Iterate over author's tiers looking for role that can promote
@@ -132,13 +132,13 @@ class PlayerManagement(commands.Cog):
                     callback_result = await role_change_function(Member, tier_source['role'] if tier_source is not None else None, tier_target['role'] if tier_target is not None else None)
 
                 if callback_result:
-                    await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) {"promoted" if command == "promote" else "assigned"} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention}.')
+                    await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) {"promoted" if command == "promote" else "assigned"} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention}.')
                     return await ctx.send(f'{"Promoted" if command == "promote" else "Assigned"} {Member.mention} to {Tier.mention}.')
                 # Allow callback to handle output on false
                 #else:
             else:
                 # Might send multiple times for multiple roles
-                await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because role <@&{tier_object["role_id"]}> can only {command} between {tier_object[key_prefix + "_min_depth"]} and {tier_object[key_prefix + "_max_depth"]} roles down, inclusively.')
+                await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because role <@&{tier_object["role_id"]}> can only {command} between {tier_object[key_prefix + "_min_depth"]} and {tier_object[key_prefix + "_max_depth"]} roles down, inclusively.')
                 return await ctx.send(f'Your role <@&{tier_object["role_id"]}> can only {command} between {tier_object[key_prefix + "_min_depth"]} and {tier_object[key_prefix + "_max_depth"]} roles down, inclusively.')
         return
 
@@ -172,11 +172,11 @@ class PlayerManagement(commands.Cog):
                         tier_source = tier_object
                     else:
                         # If multiple roles share this parent
-                        await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because this member has 2 or more child roles in hierarchy {hierarchy_name}.')
+                        await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because this member has 2 or more child roles in hierarchy {hierarchy_name}.')
                         return await ctx.send(f'This member has 2 or more child roles in hierarchy {hierarchy_name}. You cannot {command} a user who has two tiers at the same level.')
 
             if tier_source is None:
-                await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because {Member.mention} does not have its child role.')
+                await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because {Member.mention} does not have its child role.')
                 return await ctx.send(f'You cannot {command} a user at the lowest level of the hierarchy. Use unassign for this instead.')
         #elif command == 'unassign':
         #    tier_source = tier_target
@@ -209,13 +209,13 @@ class PlayerManagement(commands.Cog):
                     callback_result = await role_change_function(Member, tier_source['role'] if tier_source is not None else None, tier_target['role'] if tier_target is not None else None)
 
                 if callback_result:
-                    await logger(self.bot, ctx, f'{ctx.author.name} {ctx.author.mention} {"demoted" if command == "demote" else "unassigned"} {Member.name} {Member.mention} to {Tier.name} {Tier.mention}.')
+                    await Core.logger(self.bot, ctx, f'{ctx.author.name} {ctx.author.mention} {"demoted" if command == "demote" else "unassigned"} {Member.name} {Member.mention} to {Tier.name} {Tier.mention}.')
                     return await ctx.send(f'{"Demoted" if command == "demote" else "Unassigned"} {Member.mention} {"to" if command == "demote" else "from"} {Tier.mention}.')
                 # Allow callback to handle output on false
                 # else:
             else:
                 # Might send multiple times for multiple roles
-                await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because role <@&{tier_object["role_id"]}> can only {command} between {tier_object["demotion_min_depth"]} and {tier_object["demotion_max_depth"]} roles down, inclusively.')
+                await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) could not {command} {Member.mention} ({Member.name}#{Member.discriminator}) to {Tier.mention} because role <@&{tier_object["role_id"]}> can only {command} between {tier_object["demotion_min_depth"]} and {tier_object["demotion_max_depth"]} roles down, inclusively.')
                 await ctx.send(f'Your role <@&{tier_object["role_id"]}> can only {command} between {tier_object["demotion_min_depth"]} and {tier_object["demotion_max_depth"]} roles down, inclusively.')
         return
 

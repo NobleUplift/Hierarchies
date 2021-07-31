@@ -9,7 +9,7 @@ from pathlib import Path
 import json
 from discord_token import token
 
-from cogs.HierarchiesUtilities import lock_server_file, get_server_json, save_server_file, unlock_server_file, logger, has_manage_roles
+from cogs.HierarchiesUtilities import Core
 
 class CustomManagement(commands.Cog):
     """Commands for custom commands."""

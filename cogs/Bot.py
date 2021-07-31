@@ -15,7 +15,7 @@ from typing import Union
 
 import importlib
 
-from cogs.HierarchiesUtilities import lock_server_file, get_server_json, save_server_file, unlock_server_file, logger, has_manage_roles
+from cogs.Core import Core
 
 
 class BotManagement(commands.Cog):
@@ -38,17 +38,17 @@ class BotManagement(commands.Cog):
         """Sets the channel that Hierarchies commands will be logged to."""
 
         server_id = ctx.message.guild.id
-        lock_server_file(server_id)
-        server_json = get_server_json(server_id)
+        Core.lock_server_file(server_id)
+        server_json = Core.get_server_json(server_id)
 
         server_json['log_channel'] = channel.id
 
-        save_server_file(server_id, server_json)
-        unlock_server_file(server_id)
+        Core.save_server_file(server_id, server_json)
+        Core.unlock_server_file(server_id)
 
-        # Can only log setlogger to console, not Discord
-        print(f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) ran `setlogger` <#{channel.mention}.')
-        return await ctx.send(f'Set logger channel to {channel.mention}.')
+        # Can only log setCore.logger to console, not Discord
+        print(f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) ran `setCore.logger` <#{channel.mention}.')
+        return await ctx.send(f'Set Core.logger channel to {channel.mention}.')
 
     @commands.command(pass_context=True)
     @has_permissions(manage_roles=True)
@@ -57,12 +57,12 @@ class BotManagement(commands.Cog):
 
         server_id = ctx.message.guild.id
         if path.isfile(str(server_id) + '.lck'):
-            unlock_server_file(server_id)
-            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator})' +
+            Core.unlock_server_file(server_id)
+            await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator})' +
                          ' successfully ran `unlock`.')
             return await ctx.send('Server file unlocked.')
         else:
-            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator})' +
+            await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator})' +
                          ' unsuccessfully ran `unlock`.')
             return await ctx.send('Server file was not locked.')
 

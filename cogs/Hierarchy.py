@@ -16,7 +16,7 @@ from typing import Union
 
 import importlib
 
-from cogs.HierarchiesUtilities import lock_server_file, get_server_json, save_server_file, unlock_server_file, logger, has_manage_roles
+from cogs.Core import Core
 
 class HierarchyManagement(commands.Cog):
     """Commands for managing creating, modifying, and deleting hierarchies."""
@@ -38,7 +38,7 @@ class HierarchyManagement(commands.Cog):
         """Lists all Hierarchies."""
 
         server_id = ctx.message.guild.id
-        server_json = get_server_json(server_id)
+        server_json = Core.get_server_json(server_id)
 
         if len(server_json['hierarchies']) == 0:
             return await ctx.send('This server has no hierarchies.')
@@ -58,7 +58,7 @@ class HierarchyManagement(commands.Cog):
         """Shows all the roles in a single Hierarchy."""
 
         server_id = ctx.message.guild.id
-        server_json = get_server_json(server_id)
+        server_json = Core.get_server_json(server_id)
 
         if len(server_json['hierarchies']) == 0:
             return await ctx.send('This server has no hierarchies.')
@@ -112,26 +112,26 @@ class HierarchyManagement(commands.Cog):
         """Creates a new Hierarchy."""
 
         if ' ' in HierarchyName:
-            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to create a hierarchy `{HierarchyName}` with spaces in it.')
+            await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to create a hierarchy `{HierarchyName}` with spaces in it.')
             return await ctx.send('Hierarchies name "' + HierarchyName + '" cannot have spaces in it.')
 
         if len(HierarchyName) > 32:
-            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to create a hierarchy `{HierarchyName}` with more than 32 characters.')
+            await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to create a hierarchy `{HierarchyName}` with more than 32 characters.')
             return await ctx.send('Hierarchies name "' + HierarchyName + '" cannot exceed 32 characters.')
 
         server_id = ctx.message.guild.id
-        lock_server_file(server_id)
-        server_json = get_server_json(server_id)
+        Core.lock_server_file(server_id)
+        server_json = Core.get_server_json(server_id)
         server_json_hierarchies = server_json['hierarchies']
 
         if HierarchyName in server_json_hierarchies:
-            unlock_server_file(server_id)
-            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to create a hierarchy `{HierarchyName}` that already exists.')
+            Core.unlock_server_file(server_id)
+            await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to create a hierarchy `{HierarchyName}` that already exists.')
             return await ctx.send('Hierarchy "' + HierarchyName + '" already exists.')
 
         if str(RootTier.id) in server_json['roles']:
-            unlock_server_file(server_id)
-            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to add root tier {RootTier.mention} but the role already exists in a hierarchy.')
+            Core.unlock_server_file(server_id)
+            await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to add root tier {RootTier.mention} but the role already exists in a hierarchy.')
             return await ctx.send(f'Role already exists in hierarchy `{server_json["roles"][str(RootTier.id)]}`.')
 
         server_json_hierarchies[HierarchyName] = {
@@ -148,10 +148,10 @@ class HierarchyManagement(commands.Cog):
         }
         server_json['roles'][str(RootTier.id)] = HierarchyName
 
-        save_server_file(server_id, server_json)
-        unlock_server_file(server_id)
+        Core.save_server_file(server_id, server_json)
+        Core.unlock_server_file(server_id)
 
-        await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) created hierarchy `{HierarchyName}` with root tier {RootTier.mention}.')
+        await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) created hierarchy `{HierarchyName}` with root tier {RootTier.mention}.')
         return await ctx.send('Created hierarchy ' + HierarchyName + '.')
 
     @commands.command(pass_context=True)
@@ -160,8 +160,8 @@ class HierarchyManagement(commands.Cog):
         """Deletes an existing Hierarchy."""
 
         server_id = ctx.message.guild.id
-        lock_server_file(server_id)
-        server_json = get_server_json(server_id)
+        Core.lock_server_file(server_id)
+        server_json = Core.get_server_json(server_id)
         server_json_hierarchies = server_json['hierarchies']
 
         if HierarchyName in server_json_hierarchies:
@@ -171,13 +171,13 @@ class HierarchyManagement(commands.Cog):
                 if server_json['roles'][key] == HierarchyName:
                     del server_json['roles'][key]
 
-            save_server_file(server_id, server_json)
-            unlock_server_file(server_id)
-            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) successfully deleted hierarchy `{HierarchyName}`.')
+            Core.save_server_file(server_id, server_json)
+            Core.unlock_server_file(server_id)
+            await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) successfully deleted hierarchy `{HierarchyName}`.')
             return await ctx.send('Deleted hierarchy ' + HierarchyName + '.')
         else:
-            unlock_server_file(server_id)
-            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to delete hierarchy `{HierarchyName}` that does not exist.')
+            Core.unlock_server_file(server_id)
+            await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to delete hierarchy `{HierarchyName}` that does not exist.')
             return await ctx.send('Hierarchy  does not exist.')
 
     #
@@ -220,17 +220,17 @@ class HierarchyManagement(commands.Cog):
         """Adds a role to a Hierarchy."""
 
         server_id = ctx.message.guild.id
-        lock_server_file(server_id)
-        server_json = get_server_json(server_id)
+        Core.lock_server_file(server_id)
+        server_json = Core.get_server_json(server_id)
 
         if str(Tier.id) in server_json['roles']:
-            unlock_server_file(server_id)
-            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to add {Tier.mention}, parent role {Parent.mention}, but the role already exists in a hierarchy.')
+            Core.unlock_server_file(server_id)
+            await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to add {Tier.mention}, parent role {Parent.mention}, but the role already exists in a hierarchy.')
             return await ctx.send(f'Role already exists in hierarchy `{server_json["roles"][str(Tier.id)]}`.')
 
         if str(Parent.id) not in server_json['roles']:
-            unlock_server_file(server_id)
-            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to add {Tier.mention}, parent role {Parent.mention}, but the parent role does not exist in a hierarchy.')
+            Core.unlock_server_file(server_id)
+            await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to add {Tier.mention}, parent role {Parent.mention}, but the parent role does not exist in a hierarchy.')
             return await ctx.send(f'Parent role {Parent.mention} does not exist in a hierarchy.')
         hierarchy_name = server_json['roles'][str(Parent.id)]
 
@@ -265,17 +265,17 @@ class HierarchyManagement(commands.Cog):
                 for tier in server_json['hierarchies'][hierarchy_name]['tiers']:
                     if tier['depth'] > server_json['hierarchies'][hierarchy_name]['maximum_depth']:
                         server_json['hierarchies'][hierarchy_name]['maximum_depth'] = tier['depth']
-                save_server_file(server_id, server_json)
-                unlock_server_file(server_id)
-                await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) added {Tier.mention}, parameters {Parent.mention} {PromotionMinimumDepth} {PromotionMaximumDepth} {DemotionMinimumDepth} {DemotionMaximumDepth}, to hierarchy `{hierarchy_name}`.')
+                Core.save_server_file(server_id, server_json)
+                Core.unlock_server_file(server_id)
+                await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) added {Tier.mention}, parameters {Parent.mention} {PromotionMinimumDepth} {PromotionMaximumDepth} {DemotionMinimumDepth} {DemotionMaximumDepth}, to hierarchy `{hierarchy_name}`.')
                 return await ctx.send(f'Successfully added {Tier.mention}, parent role {Parent.mention}, to hierarchy `{hierarchy_name}`.')
             else:
-                unlock_server_file(server_id)
-                await logger(self.bot, ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to add {Tier.mention}, but parent role {Parent.mention} does not exist in hierarchy `{hierarchy_name}`.')
+                Core.unlock_server_file(server_id)
+                await Core.logger(self.bot, ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to add {Tier.mention}, but parent role {Parent.mention} does not exist in hierarchy `{hierarchy_name}`.')
                 return await ctx.send(f'**SERVER CORRUPTION!** Parent role {Parent.mention} exists in the server role lookup, but does not exist in hierarchy `{hierarchy_name}`! Please contact the developer.')
         else:
-            unlock_server_file(server_id)
-            await logger(self.bot, ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to add {Tier.mention}, parent role {Parent.mention}, but parent role hierarchy `{hierarchy_name}` no longer exists.')
+            Core.unlock_server_file(server_id)
+            await Core.logger(self.bot, ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to add {Tier.mention}, parent role {Parent.mention}, but parent role hierarchy `{hierarchy_name}` no longer exists.')
             return await ctx.send(f'**SERVER CORRUPTION!** Parent role {Parent.mention} exists in the server role lookup, but hierarchy `{hierarchy_name}` no longer exists! Please contact the developer.')
 
     @commands.command(pass_context=True)
@@ -291,24 +291,24 @@ class HierarchyManagement(commands.Cog):
         """Modifies a role within a hierarchy."""
 
         server_id = ctx.message.guild.id
-        lock_server_file(server_id)
-        server_json = get_server_json(server_id)
+        Core.lock_server_file(server_id)
+        server_json = Core.get_server_json(server_id)
 
         if str(Tier.id) not in server_json['roles']:
-            unlock_server_file(server_id)
-            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to modify {Tier.mention}, but the role does not exist in a hierarchy.')
+            Core.unlock_server_file(server_id)
+            await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to modify {Tier.mention}, but the role does not exist in a hierarchy.')
             return await ctx.send(f'Role {Tier.mention} does not exist in a hierarchy.')
         hierarchy_name = server_json['roles'][str(Tier.id)]
 
         if str(Parent.id) not in server_json['roles']:
-            unlock_server_file(server_id)
-            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) cannot change {Tier.mention} to parent role {Parent.mention} because parent role does not exist in a hierarchy.')
+            Core.unlock_server_file(server_id)
+            await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) cannot change {Tier.mention} to parent role {Parent.mention} because parent role does not exist in a hierarchy.')
             return await ctx.send(f'Cannot change {Tier.mention} to parent role {Parent.mention} because parent role does not exist in a hierarchy.')
         parent_hierarchy_name = server_json['roles'][str(Parent.id)]
 
         if hierarchy_name != parent_hierarchy_name:
-            unlock_server_file(server_id)
-            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) cannot change {Tier.mention} to parent role {Parent.mention} because parent role does not exist in hierarchy {hierarchy_name}.')
+            Core.unlock_server_file(server_id)
+            await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) cannot change {Tier.mention} to parent role {Parent.mention} because parent role does not exist in hierarchy {hierarchy_name}.')
             return await ctx.send(f'Cannot change {Tier.mention} to parent role {Parent.mention} when parent role does not exist in hierarchy {hierarchy_name}.')
 
         if hierarchy_name in server_json['hierarchies']:
@@ -328,8 +328,8 @@ class HierarchyManagement(commands.Cog):
             for tier in hierarchy:
                 if 'role_id' in tier and tier['role_id'] == Tier.id:
                     if 'parent_role_id' in tier and tier['parent_role_id'] == 0:
-                        unlock_server_file(server_id)
-                        await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) cannot change {Tier.mention} to parent role {Parent.mention} because {Tier.mention} is the root tier of hierarchy {hierarchy_name}.')
+                        Core.unlock_server_file(server_id)
+                        await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) cannot change {Tier.mention} to parent role {Parent.mention} because {Tier.mention} is the root tier of hierarchy {hierarchy_name}.')
                         return await ctx.send(f'Cannot change {Tier.mention} to parent role {Parent.mention} because {Tier.mention} is the root tier of hierarchy {hierarchy_name}.')
                     
                     tier['parent_role_id'] = Parent.id
@@ -346,17 +346,17 @@ class HierarchyManagement(commands.Cog):
                 for tier in server_json['hierarchies'][hierarchy_name]['tiers']:
                     if tier['depth'] > server_json['hierarchies'][hierarchy_name]['maximum_depth']:
                         server_json['hierarchies'][hierarchy_name]['maximum_depth'] = tier['depth']
-                save_server_file(server_id, server_json)
-                unlock_server_file(server_id)
-                await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) modified {Tier.mention}, parameters {Parent.mention} {PromotionMinimumDepth} {PromotionMaximumDepth} {DemotionMinimumDepth} {DemotionMaximumDepth}, in hierarchy `{hierarchy_name}`.')
+                Core.save_server_file(server_id, server_json)
+                Core.unlock_server_file(server_id)
+                await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) modified {Tier.mention}, parameters {Parent.mention} {PromotionMinimumDepth} {PromotionMaximumDepth} {DemotionMinimumDepth} {DemotionMaximumDepth}, in hierarchy `{hierarchy_name}`.')
                 return await ctx.send(f'Successfully modified {Tier.mention} in hierarchy `{hierarchy_name}`.')
             else:
-                unlock_server_file(server_id)
-                await logger(self.bot, ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to modify {Tier.mention}, parameters {Parent.mention} {PromotionMinimumDepth} {PromotionMaximumDepth} {DemotionMinimumDepth} {DemotionMaximumDepth}, but role {Tier.mention} does not exist in hierarchy `{hierarchy_name}`.')
+                Core.unlock_server_file(server_id)
+                await Core.logger(self.bot, ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to modify {Tier.mention}, parameters {Parent.mention} {PromotionMinimumDepth} {PromotionMaximumDepth} {DemotionMinimumDepth} {DemotionMaximumDepth}, but role {Tier.mention} does not exist in hierarchy `{hierarchy_name}`.')
                 return await ctx.send(f'**SERVER CORRUPTION!** Role {Tier.mention} exists in the server role lookup, but does not exist in hierarchy `{hierarchy_name}`! Please contact the developer.')
         else:
-            unlock_server_file(server_id)
-            await logger(self.bot, ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to modify {Tier.mention}, parameters {Parent.mention} {PromotionMinimumDepth} {PromotionMaximumDepth} {DemotionMinimumDepth} {DemotionMaximumDepth}, but role hierarchy `{hierarchy_name}` no longer exists.')
+            Core.unlock_server_file(server_id)
+            await Core.logger(self.bot, ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to modify {Tier.mention}, parameters {Parent.mention} {PromotionMinimumDepth} {PromotionMaximumDepth} {DemotionMinimumDepth} {DemotionMaximumDepth}, but role hierarchy `{hierarchy_name}` no longer exists.')
             return await ctx.send(f'**SERVER CORRUPTION!** Role {Tier.mention} exists in the server role lookup, but hierarchy `{hierarchy_name}` no longer exists! Please contact the developer.')
 
     @commands.command(pass_context=True)
@@ -365,8 +365,8 @@ class HierarchyManagement(commands.Cog):
         """Removes a role from a hierarchy, linking all former child roles to its parent role. The root role cannot be deleted."""
 
         server_id = ctx.message.guild.id
-        lock_server_file(server_id)
-        server_json = get_server_json(server_id)
+        Core.lock_server_file(server_id)
+        server_json = Core.get_server_json(server_id)
         role_id = None
         role_mention = None
 
@@ -378,8 +378,8 @@ class HierarchyManagement(commands.Cog):
             role_mention = f'<@&!{role_id}>'
 
         if str(role_id) not in server_json['roles']:
-            unlock_server_file(server_id)
-            await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) attempted to remove {role_mention} when it does not belong to a hierarchy.')
+            Core.unlock_server_file(server_id)
+            await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) attempted to remove {role_mention} when it does not belong to a hierarchy.')
             return await ctx.send(f'Role {role_mention} does not belong to a hierarchy.')
         hierarchy_name = server_json['roles'][str(role_id)]
 
@@ -396,13 +396,13 @@ class HierarchyManagement(commands.Cog):
                 if 'role_id' in tier and tier['role_id'] == role_id:
                     tier_to_remove = tier
                     if 'parent_role_id' in tier_to_remove and tier_to_remove['parent_role_id'] == 0:
-                        unlock_server_file(server_id)
-                        await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) attempted to remove the root role {role_mention} from hierarchy `{hierarchy_name}`.')
+                        Core.unlock_server_file(server_id)
+                        await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) attempted to remove the root role {role_mention} from hierarchy `{hierarchy_name}`.')
                         return await ctx.send(f'Cannot delete root tier for hierarchy {hierarchy_name}. Delete and recreate the hierarchy.')
 
             if tier_to_remove is None:
-                unlock_server_file(server_id)
-                await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) attempted to remove {role_mention} from hierarchy `{hierarchy_name}` where it does not exist.')
+                Core.unlock_server_file(server_id)
+                await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) attempted to remove {role_mention} from hierarchy `{hierarchy_name}` where it does not exist.')
                 return await ctx.send(f'Role {role_mention} does not exist in hierarchy `{hierarchy_name}`.')
 
             for tier in old_hierarchy:
@@ -418,15 +418,15 @@ class HierarchyManagement(commands.Cog):
             if role_removed:
                 new_hierarchy = self.recursive_hierarchy_update(new_hierarchy, 0, 0)
                 server_json['hierarchies'][hierarchy_name]['tiers'] = new_hierarchy
-                save_server_file(server_id, server_json)
-                unlock_server_file(server_id)
-                await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) removed {role_mention} from hierarchy `{hierarchy_name}`.')
+                Core.save_server_file(server_id, server_json)
+                Core.unlock_server_file(server_id)
+                await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) removed {role_mention} from hierarchy `{hierarchy_name}`.')
                 return await ctx.send(f'Successfully removed {role_mention} from hierarchy `{hierarchy_name}`.')
             else:
-                unlock_server_file(server_id)
-                await logger(self.bot, ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to remove {role_mention} but it does not exist in hierarchy `{hierarchy_name}`.')
+                Core.unlock_server_file(server_id)
+                await Core.logger(self.bot, ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to remove {role_mention} but it does not exist in hierarchy `{hierarchy_name}`.')
                 return await ctx.send(f'**SERVER CORRUPTION!** Role {role_mention} exists in the server role lookup, but does not exist in hierarchy `{hierarchy_name}`! Please contact the developer.')
         else:
-            unlock_server_file(server_id)
-            await logger(self.bot, ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to remove {role_mention} but role hierarchy `{hierarchy_name}` no longer exists.')
+            Core.unlock_server_file(server_id)
+            await Core.logger(self.bot, ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to remove {role_mention} but role hierarchy `{hierarchy_name}` no longer exists.')
             return await ctx.send(f'**SERVER CORRUPTION!** Role {role_mention} exists in the server role lookup, but hierarchy `{hierarchy_name}` no longer exists! Please contact the developer.')
