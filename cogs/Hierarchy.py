@@ -327,6 +327,11 @@ class HierarchyManagement(commands.Cog):
 
             for tier in hierarchy:
                 if 'role_id' in tier and tier['role_id'] == Tier.id:
+                    if 'parent_role_id' in tier and tier['parent_role_id'] == 0:
+                        unlock_server_file(server_id)
+                        await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) cannot change {Tier.mention} to parent role {Parent.mention} because {Tier.mention} is the root tier of hierarchy {hierarchy_name}.')
+                        return await ctx.send(f'Cannot change {Tier.mention} to parent role {Parent.mention} because {Tier.mention} is the root tier of hierarchy {hierarchy_name}.')
+                    
                     tier['parent_role_id'] = Parent.id
                     tier['promotion_min_depth'] = PromotionMinimumDepth
                     tier['promotion_max_depth'] = PromotionMaximumDepth
@@ -346,9 +351,11 @@ class HierarchyManagement(commands.Cog):
                 await logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) modified {Tier.mention}, parameters {Parent.mention} {PromotionMinimumDepth} {PromotionMaximumDepth} {DemotionMinimumDepth} {DemotionMaximumDepth}, in hierarchy `{hierarchy_name}`.')
                 return await ctx.send(f'Successfully modified {Tier.mention} in hierarchy `{hierarchy_name}`.')
             else:
+                unlock_server_file(server_id)
                 await logger(self.bot, ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to modify {Tier.mention}, parameters {Parent.mention} {PromotionMinimumDepth} {PromotionMaximumDepth} {DemotionMinimumDepth} {DemotionMaximumDepth}, but role {Tier.mention} does not exist in hierarchy `{hierarchy_name}`.')
                 return await ctx.send(f'**SERVER CORRUPTION!** Role {Tier.mention} exists in the server role lookup, but does not exist in hierarchy `{hierarchy_name}`! Please contact the developer.')
         else:
+            unlock_server_file(server_id)
             await logger(self.bot, ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to modify {Tier.mention}, parameters {Parent.mention} {PromotionMinimumDepth} {PromotionMaximumDepth} {DemotionMinimumDepth} {DemotionMaximumDepth}, but role hierarchy `{hierarchy_name}` no longer exists.')
             return await ctx.send(f'**SERVER CORRUPTION!** Role {Tier.mention} exists in the server role lookup, but hierarchy `{hierarchy_name}` no longer exists! Please contact the developer.')
 
