@@ -1,24 +1,15 @@
-import sys
-import traceback
-
 import discord
+# pip install -U discord.py
 from discord.ext import commands
-from discord import Member
-from discord.ext.commands import has_permissions, MissingPermissions
-
-import os.path
-from os import path
-from pathlib import Path
-
-import json
-from discord_token import token
+# pip install -U discord-py-slash-command
+from discord_slash import SlashCommand, SlashContext, cog_ext
+from discord_slash.utils.manage_commands import create_option
+from discord.ext.commands import Cog, command, has_permissions, MissingPermissions
 from typing import Union
+from cogs.Core import Core, ApplicationCommandOptionType
 
-import importlib
 
-from cogs.Core import Core
-
-class HierarchyManagement(commands.Cog):
+class HierarchyManagement(Cog):
     """Commands for managing creating, modifying, and deleting hierarchies."""
     _instance = None
 
@@ -32,10 +23,14 @@ class HierarchyManagement(commands.Cog):
         self.bot = bot
         self._last_member = None
 
-    @commands.command(pass_context=True)
+    @cog_ext.cog_slash(name="list", description="List all hierarchies.")
+    async def _list(self, ctx: SlashContext):
+        await self.list(ctx=ctx)
+
+    @command(pass_context=True)
     @has_permissions(manage_roles=True)
     async def list(self, ctx: discord.ext.commands.Context):
-        """Lists all Hierarchies."""
+        """Lists all hierarchies."""
 
         server_id = ctx.message.guild.id
         server_json = Core.get_server_json(server_id)
@@ -52,10 +47,18 @@ class HierarchyManagement(commands.Cog):
         print(f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) listed hierarchies.')
         return await ctx.send(retval)
 
-    @commands.command(pass_context=True)
+    @cog_ext.cog_slash(name="show", description="Shows all the roles in a single hierarchy.",
+        options=[
+            create_option(name="HierarchyName", description="The name of the hierarchy to show.", option_type=ApplicationCommandOptionType.STRING, required=True)
+        ]
+    )
+    async def _show(self, ctx: SlashContext, *, HierarchyName: str):
+        await self.show(ctx=ctx, HierarchyName=HierarchyName)
+
+    @command(pass_context=True)
     @has_permissions(manage_roles=True)
     async def show(self, ctx: discord.ext.commands.Context, HierarchyName: str):
-        """Shows all the roles in a single Hierarchy."""
+        """Shows all the roles in a single hierarchy."""
 
         server_id = ctx.message.guild.id
         server_json = Core.get_server_json(server_id)
@@ -106,10 +109,19 @@ class HierarchyManagement(commands.Cog):
         print(f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) showed hierarchy `{HierarchyName}`.')
         return await ctx.send(retval)
 
-    @commands.command(pass_context=True)
+    @cog_ext.cog_slash(name="create", description="Creates a new hierarchy.",
+        options=[
+           create_option(name="HierarchyName", description="The name of the hierarchy to show.", option_type=ApplicationCommandOptionType.STRING, required=True),
+           create_option(name="RootTier", description="The role that will exist at the top of the hierarchy.", option_type=ApplicationCommandOptionType.ROLE, required=True)
+        ]
+    )
+    async def _create(self, ctx: SlashContext, *, HierarchyName: str, RootTier: discord.Role):
+        await self.create(ctx=ctx, HierarchyName=HierarchyName, RootTier=RootTier)
+
+    @command(pass_context=True)
     @has_permissions(manage_roles=True)
     async def create(self, ctx: discord.ext.commands.Context, HierarchyName: str, RootTier: discord.Role):
-        """Creates a new Hierarchy."""
+        """Creates a new hierarchy."""
 
         if ' ' in HierarchyName:
             await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to create a hierarchy `{HierarchyName}` with spaces in it.')
@@ -154,7 +166,20 @@ class HierarchyManagement(commands.Cog):
         await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) created hierarchy `{HierarchyName}` with root tier {RootTier.mention}.')
         return await ctx.send('Created hierarchy ' + HierarchyName + '.')
 
-    @commands.command(pass_context=True)
+    """
+
+    DELETE
+
+    """
+    @cog_ext.cog_slash(name="delete", description="Deletes an existing Hierarchy.",
+        options=[
+            create_option(name="HierarchyName", description="The name of the hierarchy to delete.", option_type=ApplicationCommandOptionType.STRING, required=True)
+        ]
+    )
+    async def _delete(self, ctx: SlashContext, *, HierarchyName: str):
+        await self.delete(ctx=ctx, HierarchyName=HierarchyName)
+
+    @command(pass_context=True)
     @has_permissions(manage_roles=True)
     async def delete(self, ctx: discord.ext.commands.Context, HierarchyName: str):
         """Deletes an existing Hierarchy."""
@@ -179,6 +204,12 @@ class HierarchyManagement(commands.Cog):
             Core.unlock_server_file(server_id)
             await Core.logger(self.bot, ctx, f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to delete hierarchy `{HierarchyName}` that does not exist.')
             return await ctx.send('Hierarchy  does not exist.')
+            
+    # createrole
+    # modifyrole
+    # deleterole
+    
+    # linkrole - Link a lower depth parent to higher depth parent
 
     #
     # Possible architectures:
@@ -207,17 +238,46 @@ class HierarchyManagement(commands.Cog):
         #print(new_hierarchy)
         return new_hierarchy
 
-    @commands.command(pass_context=True)
+    """
+
+    ADD
+
+    """
+    @cog_ext.cog_slash(name="add", description="Adds an existing role to a hierarchy.",
+        options=[
+            create_option(name="Tier", description="The role to add to this hierarchy.", option_type=ApplicationCommandOptionType.ROLE, required=True),
+            create_option(name="Parent", description="The parent role that this role will be nested under.", option_type=ApplicationCommandOptionType.ROLE, required=True),
+            create_option(name="PromotionMinimumDepth", description="The minimum depth that this role can promote. -1 to disable, 0 to promote others to the same tier.", option_type=ApplicationCommandOptionType.INTEGER, required=False),
+            create_option(name="PromotionMaximumDepth", description="The maximum depth that this role can promote. -1 to disable.", option_type=ApplicationCommandOptionType.INTEGER, required=False),
+            create_option(name="DemotionMinimumDepth", description="The minimum depth that this role can demote. -1 to disable, 0 to demote others of the same tier.", option_type=ApplicationCommandOptionType.INTEGER, required=False),
+            create_option(name="DemotionMaximumDepth", description="The maximum depth that this role can promote. -1 to disable.", option_type=ApplicationCommandOptionType.INTEGER, required=False),
+            create_option(name="AllowPromoteDemote", description="True/False: Allow this role to be promoted to/demoted from.", option_type=ApplicationCommandOptionType.BOOLEAN, required=False),
+            create_option(name="AllowAssignUnassign", description="True/False: Allow this role to be assigned to/unassigned from.", option_type=ApplicationCommandOptionType.BOOLEAN, required=False),
+        ]
+    )
+    async def _add(self, ctx: SlashContext, *,
+            Tier: discord.Role,
+            Parent: discord.Role,
+            PromotionMinimumDepth: int = -1,
+            PromotionMaximumDepth: int = -1,
+            DemotionMinimumDepth: int = -1,
+            DemotionMaximumDepth: int = -1,
+            AllowPromoteDemote: bool = True,
+            AllowAssignUnassign: bool = True,
+        ):
+        await self.add(ctx=ctx, Tier=Tier, Parent=Parent, PromotionMinimumDepth=PromotionMinimumDepth, PromotionMaximumDepth=PromotionMaximumDepth, DemotionMinimumDepth=DemotionMinimumDepth, DemotionMaximumDepth=DemotionMaximumDepth, AllowPromoteDemote=AllowPromoteDemote, AllowAssignUnassign=AllowAssignUnassign,)
+
+    @command(pass_context=True)
     @has_permissions(manage_roles=True)
     async def add(self, ctx: discord.ext.commands.Context, Tier: discord.Role, Parent: discord.Role,
             PromotionMinimumDepth: int = -1,
             PromotionMaximumDepth: int = -1,
             DemotionMinimumDepth: int = -1,
             DemotionMaximumDepth: int = -1,
-            PromoteDemoteOnly: bool = False,
-            AssignUnassignOnly: bool = False,
+            AllowPromoteDemote: bool = True,
+            AllowAssignUnassign: bool = True,
         ):
-        """Adds a role to a Hierarchy."""
+        """Adds an existing role to a hierarchy."""
 
         server_id = ctx.message.guild.id
         Core.lock_server_file(server_id)
@@ -245,7 +305,9 @@ class HierarchyManagement(commands.Cog):
                 'promotion_min_depth': PromotionMinimumDepth,
                 'promotion_max_depth': PromotionMaximumDepth,
                 'demotion_min_depth': DemotionMinimumDepth,
-                'demotion_max_depth': DemotionMaximumDepth
+                'demotion_max_depth': DemotionMaximumDepth,
+                'allow_promote_demote': AllowPromoteDemote,
+                'allow_assign_unassign': AllowAssignUnassign,
             }
 
             if len(hierarchy) == 0 and Parent is None:
@@ -278,15 +340,44 @@ class HierarchyManagement(commands.Cog):
             await Core.logger(self.bot, ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to add {Tier.mention}, parent role {Parent.mention}, but parent role hierarchy `{hierarchy_name}` no longer exists.')
             return await ctx.send(f'**SERVER CORRUPTION!** Parent role {Parent.mention} exists in the server role lookup, but hierarchy `{hierarchy_name}` no longer exists! Please contact the developer.')
 
-    @commands.command(pass_context=True)
+    """
+
+    MODIFY
+
+    """
+    @cog_ext.cog_slash(name="modify", description="Adds an existing role to a hierarchy.",
+        options=[
+            create_option(name="Tier", description="The role to add to this hierarchy.", option_type=ApplicationCommandOptionType.ROLE, required=True),
+            create_option(name="Parent", description="The parent role that this role will be nested under.", option_type=ApplicationCommandOptionType.ROLE, required=True),
+            create_option(name="PromotionMinimumDepth", description="The minimum depth that this role can promote. -1 to disable, 0 to promote others to the same tier.", option_type=ApplicationCommandOptionType.INTEGER, required=False),
+            create_option(name="PromotionMaximumDepth", description="The maximum depth that this role can promote. -1 to disable.", option_type=ApplicationCommandOptionType.INTEGER, required=False),
+            create_option(name="DemotionMinimumDepth", description="The minimum depth that this role can demote. -1 to disable, 0 to demote others of the same tier.", option_type=ApplicationCommandOptionType.INTEGER, required=False),
+            create_option(name="DemotionMaximumDepth", description="The maximum depth that this role can promote. -1 to disable.", option_type=ApplicationCommandOptionType.INTEGER, required=False),
+            create_option(name="AllowPromoteDemote", description="True/False: Allow this role to be promoted to/demoted from.", option_type=ApplicationCommandOptionType.BOOLEAN, required=False),
+            create_option(name="AllowAssignUnassign", description="True/False: Allow this role to be assigned to/unassigned from.", option_type=ApplicationCommandOptionType.BOOLEAN, required=False),
+        ]
+    )
+    async def _modify(self, ctx: SlashContext, *,
+            Tier: discord.Role,
+            Parent: discord.Role,
+            PromotionMinimumDepth: int = -1,
+            PromotionMaximumDepth: int = -1,
+            DemotionMinimumDepth: int = -1,
+            DemotionMaximumDepth: int = -1,
+            AllowPromoteDemote: bool = True,
+            AllowAssignUnassign: bool = True,
+        ):
+        await self.modify(ctx=ctx, Tier=Tier, Parent=Parent, PromotionMinimumDepth=PromotionMinimumDepth, PromotionMaximumDepth=PromotionMaximumDepth, DemotionMinimumDepth=DemotionMinimumDepth, DemotionMaximumDepth=DemotionMaximumDepth, AllowPromoteDemote=AllowPromoteDemote, AllowAssignUnassign=AllowAssignUnassign,)
+
+    @command(pass_context=True)
     @has_permissions(manage_roles=True)
     async def modify(self, ctx: discord.ext.commands.Context, Tier: discord.Role, Parent: discord.Role,
             PromotionMinimumDepth: int = -1,
             PromotionMaximumDepth: int = -1,
             DemotionMinimumDepth: int = -1,
             DemotionMaximumDepth: int = -1,
-            PromoteDemoteOnly: bool = False,
-            AssignUnassignOnly: bool = False,
+            AllowPromoteDemote: bool = True,
+            AllowAssignUnassign: bool = True,
         ):
         """Modifies a role within a hierarchy."""
 
@@ -359,7 +450,21 @@ class HierarchyManagement(commands.Cog):
             await Core.logger(self.bot, ctx, f'**SERVER CORRUPTION!** {ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) tried to modify {Tier.mention}, parameters {Parent.mention} {PromotionMinimumDepth} {PromotionMaximumDepth} {DemotionMinimumDepth} {DemotionMaximumDepth}, but role hierarchy `{hierarchy_name}` no longer exists.')
             return await ctx.send(f'**SERVER CORRUPTION!** Role {Tier.mention} exists in the server role lookup, but hierarchy `{hierarchy_name}` no longer exists! Please contact the developer.')
 
-    @commands.command(pass_context=True)
+    """
+
+    DELETE
+
+    """
+
+    @cog_ext.cog_slash(name="remove", description="Removes a role from a hierarchy, linking all former child roles to its parent role. The root role cannot be deleted.",
+        options=[
+           create_option(name="Tier", description="The role to remove from its Hierarchy.", option_type=ApplicationCommandOptionType.STRING, required=True)
+        ]
+    )
+    async def _remove(self, ctx: SlashContext, *, Tier: Union[discord.Role, int]):
+        await self.remove(ctx=ctx, Tier=Tier)
+
+    @command(pass_context=True)
     @has_permissions(manage_roles=True)
     async def remove(self, ctx: discord.ext.commands.Context, Tier: Union[discord.Role, int]):
         """Removes a role from a hierarchy, linking all former child roles to its parent role. The root role cannot be deleted."""

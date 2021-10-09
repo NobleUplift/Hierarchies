@@ -1,22 +1,12 @@
-import sys
-import traceback
-
 import discord
+# pip install -U discord.py
 from discord.ext import commands
-from discord import Member
-from discord.ext.commands import has_permissions, MissingPermissions
-
-import os.path
+# pip install -U discord-py-slash-command
+from discord_slash import SlashCommand, SlashContext, cog_ext
+from discord_slash.utils.manage_commands import create_option
+from discord.ext.commands import Cog, command, has_permissions, MissingPermissions
 from os import path
-from pathlib import Path
-import json
-from discord_token import token
-from typing import Union
-
-import importlib
-
-from cogs.Core import Core
-
+from cogs.Core import Core, ApplicationCommandOptionType
 
 class BotManagement(commands.Cog):
     """Commands for managing the Hierarchies bot."""
@@ -31,6 +21,19 @@ class BotManagement(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self._last_member = None
+
+    """
+
+    setlogger
+
+    """
+    @cog_ext.cog_slash(name="setlogger", description="Sets the channel that Hierarchies commands will be logged to.",
+        options=[
+          create_option(name="channel", description="The channel for logging", option_type=ApplicationCommandOptionType.CHANNEL, required=True)
+        ]
+    )
+    async def _setlogger(self, ctx: SlashContext, *, channel: discord.TextChannel):
+        await self.setlogger(ctx=ctx, channel=channel)
 
     @commands.command(pass_context=True)
     @has_permissions(manage_roles=True)
@@ -49,6 +52,15 @@ class BotManagement(commands.Cog):
         # Can only log setCore.logger to console, not Discord
         print(f'{ctx.author.mention} ({ctx.author.name}#{ctx.author.discriminator}) ran `setCore.logger` <#{channel.mention}.')
         return await ctx.send(f'Set Core.logger channel to {channel.mention}.')
+
+    """
+
+    unlock
+
+    """
+    @cog_ext.cog_slash(name="unlock", description="Unlocks the mutex file if the bot crashes during a Hierarchies command.")
+    async def _unlock(self, ctx: SlashContext):
+        await self.unlock(ctx=ctx)
 
     @commands.command(pass_context=True)
     @has_permissions(manage_roles=True)

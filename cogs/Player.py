@@ -1,7 +1,12 @@
 import discord
+# pip install -U discord.py
 from discord.ext import commands
+# pip install -U discord-py-slash-command
+from discord_slash import SlashCommand, SlashContext, cog_ext
+from discord_slash.utils.manage_commands import create_option
+from discord.ext.commands import Cog, command, has_permissions, MissingPermissions
 
-from cogs.Core import Core
+from cogs.Core import Core, ApplicationCommandOptionType
 from custom.Custom import CustomManagement
 
 
@@ -81,7 +86,6 @@ class PlayerManagement(commands.Cog):
 
         return key_prefix, author_tiers, target_tiers, tier_target
 
-
     async def _core_promote_assign(self, command: str, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role):
         """Core method used in promote/assign commands."""
         hierarchy_name, hierarchy = await self._core_get_hierarchies(command, ctx, Member, Tier)
@@ -118,11 +122,15 @@ class PlayerManagement(commands.Cog):
             print(f"Calculated depth: {tier_object['demotion_min_depth']} <= {calculated_depth} <= {tier_object['demotion_max_depth']}")
             if tier_object[key_prefix + '_min_depth'] <= calculated_depth <= tier_object[key_prefix + '_max_depth']:
 
-                async def role_change_function(Member, Tier, NewTier):
-                    if tier_source is not None:
+                if command == 'promote':
+                    async def role_change_function(Member, Tier, NewTier):
                         await Member.remove_roles(Tier)
-                    await Member.add_roles(NewTier)
-                    return True
+                        await Member.add_roles(NewTier)
+                        return True
+                elif command == 'assign':
+                    async def role_change_function(Member, Tier, NewTier):
+                        await Member.add_roles(NewTier)
+                        return True
 
                 custom_cog = CustomManagement(self.bot)
                 custom_method = getattr(custom_cog, command + '_hooks', None)
@@ -142,10 +150,38 @@ class PlayerManagement(commands.Cog):
                 return await ctx.send(f'Your role <@&{tier_object["role_id"]}> can only {command} between {tier_object[key_prefix + "_min_depth"]} and {tier_object[key_prefix + "_max_depth"]} roles down, inclusively.')
         return
 
+    """
+    
+    PROMOTE
+    
+    """
+    @cog_ext.cog_slash(name="promote", description="Remove a role from a user and give that user the next highest role in the hierarchy.",
+        options=[
+           create_option(name="Member", description="The member to promote.", option_type=ApplicationCommandOptionType.STRING, required=True),
+           create_option(name="Tier", description="The role to promote the member to.", option_type=ApplicationCommandOptionType.STRING, required=True),
+        ]
+    )
+    async def _promote(self, ctx: SlashContext, *, Member: discord.Member, Tier: discord.Role):
+        await self.promote(ctx=ctx, Member=Member, Tier=Tier)
+
     @commands.command(pass_context=True)
     async def promote(self, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role):
         """Remove a role from a user and give that user the next highest role in the hierarchy."""
         return await self._core_promote_assign('promote', ctx, Member, Tier)
+
+    """
+
+    ASSIGN
+
+    """
+    @cog_ext.cog_slash(name="assign", description="Assign a role to a user in the hierarchy. This should only be used for roles that cannot be promoted or demoted.",
+        options=[
+           create_option(name="Member", description="The member to promote.", option_type=ApplicationCommandOptionType.STRING, required=True),
+           create_option(name="Tier", description="The role to promote the member to.", option_type=ApplicationCommandOptionType.STRING, required=True),
+        ]
+    )
+    async def _assign(self, ctx: SlashContext, *, Member: discord.Member, Tier: discord.Role):
+        await self.assign(ctx=ctx, Member=Member, Tier=Tier)
 
     @commands.command(pass_context=True)
     async def assign(self, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role):
@@ -219,10 +255,38 @@ class PlayerManagement(commands.Cog):
                 await ctx.send(f'Your role <@&{tier_object["role_id"]}> can only {command} between {tier_object["demotion_min_depth"]} and {tier_object["demotion_max_depth"]} roles down, inclusively.')
         return
 
+    """
+
+    DEMOTE
+
+    """
+    @cog_ext.cog_slash(name="demote", description="Remove a role from a user and give that user the next highest role in the hierarchy.",
+        options=[
+           create_option(name="Member", description="The member to demote.", option_type=ApplicationCommandOptionType.STRING, required=True),
+           create_option(name="Tier", description="The role to demote the member to.", option_type=ApplicationCommandOptionType.STRING, required=True),
+        ]
+    )
+    async def _demote(self, ctx: SlashContext, *, Member: discord.Member, Tier: discord.Role):
+        await self.demote(ctx=ctx, Member=Member, Tier=Tier)
+
     @commands.command(pass_context=True)
     async def demote(self, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role):
         """Remove a role from the user and give that user the next lowest role in the hierarchy."""
         return await self._core_demote_unassign('demote', ctx, Member, Tier)
+
+    """
+
+    UNASSIGN
+
+    """
+    @cog_ext.cog_slash(name="unassign", description="Unassign a role from a user in the hierarchy. This should only be used for roles that cannot be promoted or demoted.",
+        options=[
+           create_option(name="Member", description="The member to unassign from.", option_type=ApplicationCommandOptionType.STRING, required=True),
+           create_option(name="Tier", description="The role to unassign from the member.", option_type=ApplicationCommandOptionType.STRING, required=True),
+        ]
+    )
+    async def _unassign(self, ctx: SlashContext, *, Member: discord.Member, Tier: discord.Role):
+        await self.unassign(ctx=ctx, Member=Member, Tier=Tier)
 
     @commands.command(pass_context=True)
     async def unassign(self, ctx: discord.ext.commands.Context, Member: discord.Member, Tier: discord.Role):
