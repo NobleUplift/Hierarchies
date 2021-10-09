@@ -7,7 +7,7 @@ if hash python3 2>/dev/null; then
       counter=0
       while [ $counter -le 100 ]
       do
-            pip install -U discord pymysql sshtunnel
+            pip3 install -U discord pymysql sshtunnel
             python3 -u $cwd.py | tee -a ${cwd}.log 2>&1
             sleep 5s
             counter=$(($counter+1))
