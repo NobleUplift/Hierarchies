@@ -6,7 +6,7 @@ from discord_slash import SlashCommand, SlashContext, cog_ext
 from discord_slash.utils.manage_commands import create_option
 from discord.ext.commands import Cog, command, has_permissions, MissingPermissions
 from os import path
-from cogs.Core import Core, ApplicationCommandOptionType
+from cogs.CoreManagement import Core, ApplicationCommandOptionType
 
 class BotManagement(commands.Cog):
     """Commands for managing the Hierarchies bot."""

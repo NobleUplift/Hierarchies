@@ -1,3 +1,6 @@
+# https://pypi.org/project/discord-py-slash-command/
+# pip3 install discord-py-slash-command
+
 import sys
 import traceback
 
@@ -12,9 +15,9 @@ import json
 from discord_token import token
 from typing import Union
 
-from cogs.Bot import BotManagement
-from cogs.Hierarchy import HierarchyManagement
-from cogs.Player import PlayerManagement
+from cogs.BotManagement import BotManagement
+from cogs.HierarchyManagement import HierarchyManagement
+from cogs.PlayerManagement import PlayerManagement
 from custom.Custom import CustomManagement
 
 # messages=True for reading Hierarchy commands
