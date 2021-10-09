@@ -34,7 +34,7 @@ For instance, if you add a role with minimum depth 0 and maximum depth 2, then m
 
 ## Commands
 | Command Usage | Description | Examples |
-|---|---|---|---|
+|---|---|---|
 | `^list` | Lists all hierarchies in the server. | `^list` |
 | `^show <Hierarchy Name>` | Shows all of the tiers in a hierarchy | `^show staff` |
 | `^create <Hierarchy Name> <Root Tier>` | Creates a new hierarchy with one role as its root tier. | `^create staff @administrator` |
